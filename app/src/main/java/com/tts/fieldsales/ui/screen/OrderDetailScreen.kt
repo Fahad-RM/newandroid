@@ -71,9 +71,9 @@ fun OrderDetailScreen(
                             GlassCard {
                                 SectionHeader("Order Information")
                                 Spacer(Modifier.height(12.dp))
-                                InfoRow("Customer", (order.partnerId?.getOrNull(1) as? String) ?: "-", Icons.Default.Person)
+                                InfoRow("Customer", order.partnerId.toOdooName(), Icons.Default.Person)
                                 InfoRow("Date", order.dateOrder?.take(16)?.replace("T", " ") ?: "-", Icons.Default.CalendarToday)
-                                InfoRow("Warehouse", (order.warehouseId?.getOrNull(1) as? String) ?: "-", Icons.Default.Warehouse)
+                                InfoRow("Warehouse", order.warehouseId.toOdooName(), Icons.Default.Warehouse)
                                 InfoRow("Status", order.state.replace("_", " "), Icons.Default.Info)
                             }
                         }
@@ -331,7 +331,7 @@ fun InvoiceDetailScreen(
                                 Text("SAR %.2f".format(inv.amountTotal), style = MaterialTheme.typography.headlineMedium, color = GoldPrimary, fontWeight = FontWeight.ExtraBold)
                             }
                             Spacer(Modifier.height(12.dp))
-                            InfoRow("Customer", (inv.partnerId?.getOrNull(1) as? String) ?: "-", Icons.Default.Person)
+                            InfoRow("Customer", inv.partnerId.toOdooName(), Icons.Default.Person)
                             InfoRow("Invoice Date", inv.invoiceDate ?: "-", Icons.Default.CalendarToday)
                             InfoRow("Due Date", inv.invoiceDateDue ?: "-", Icons.Default.Event)
                             InfoRow("Reference", inv.ref ?: "-", Icons.Default.Tag)
@@ -356,7 +356,7 @@ fun InvoiceDetailScreen(
                                 else -> {
                                     lines.forEachIndexed { idx, line ->
                                         if (idx > 0) GoldDivider(Modifier.padding(vertical = 4.dp))
-                                        val name = (line.productId?.getOrNull(1) as? String) ?: line.name ?: "-"
+                                        val name = line.productId.toOdooName(line.name ?: "-")
                                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                             Column(Modifier.weight(1f)) {
                                                 Text(name, color = TextPrimary, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)

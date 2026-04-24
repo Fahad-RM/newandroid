@@ -341,7 +341,7 @@ fun ExpensesScreen(
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) {
                                 Text(expense.name, style = MaterialTheme.typography.titleSmall, color = TextPrimary, fontWeight = FontWeight.SemiBold)
-                                Text((expense.productId?.getOrNull(1) as? String) ?: "-", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+                                Text(expense.productId.toOdooName(), style = MaterialTheme.typography.bodySmall, color = TextSecondary)
                                 Text(expense.date ?: "-", style = MaterialTheme.typography.labelSmall, color = TextMuted)
                             }
                             Column(horizontalAlignment = Alignment.End) {

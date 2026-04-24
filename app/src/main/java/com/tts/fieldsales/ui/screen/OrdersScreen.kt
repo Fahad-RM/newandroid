@@ -88,7 +88,7 @@ fun OrdersScreen(
                 val filtered = state.orders.filter { order ->
                     (selectedFilter == "all" || order.state == selectedFilter) &&
                     (searchQuery.isBlank() || order.name.contains(searchQuery, ignoreCase = true) ||
-                     (order.partnerId?.getOrNull(1) as? String)?.contains(searchQuery, ignoreCase = true) == true)
+                     (order.partnerId.toOdooName()).contains(searchQuery, ignoreCase = true)
                 }
                 if (filtered.isEmpty()) {
                     EmptyState("No orders found", Icons.Default.ShoppingCart)
