@@ -64,7 +64,7 @@ fun DashboardScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column {
-                            Text("Good ${getGreeting()}! 👋", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
+                            Text("Good ${getDashboardGreeting()}! 👋", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
                             Text(
                                 state.userName.ifBlank { "Sales Rep" },
                                 style = MaterialTheme.typography.headlineMedium,
@@ -72,7 +72,7 @@ fun DashboardScreen(
                                 fontWeight = FontWeight.ExtraBold
                             )
                             Text(
-                                getCurrentDate(),
+                                getDashboardDate(),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = GoldPrimary
                             )
@@ -112,7 +112,7 @@ fun DashboardScreen(
             item {
                 Spacer(Modifier.height(16.dp))
                 Box(modifier = Modifier.padding(horizontal = 16.dp)) {
-                    PerformanceCard(
+                    DashboardPerformanceCard(
                         todaySales = state.todaySales,
                         dailyGoal = state.dailyGoal,
                         progress = state.goalProgress,
@@ -129,7 +129,7 @@ fun DashboardScreen(
                         Text("7-Day Sales", style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.Bold)
                         Spacer(Modifier.height(8.dp))
                         if (state.chartData.isNotEmpty()) {
-                            SalesBarChart(data = state.chartData)
+                            DashboardSalesBarChart(data = state.chartData)
                         } else {
                             ShimmerBox(Modifier.fillMaxWidth().height(60.dp))
                         }
@@ -153,14 +153,14 @@ fun DashboardScreen(
             // ─── MODULE GRID ─────────────────────────────────────
             item {
                 Spacer(Modifier.height(20.dp))
-                Padding(16.dp) {
+                Box(modifier = Modifier.padding(16.dp)) {
                     Text("Modules", style = MaterialTheme.typography.titleLarge, color = TextPrimary, fontWeight = FontWeight.Bold)
                 }
                 Spacer(Modifier.height(12.dp))
             }
 
             // Grid of modules (3 columns)
-            val modules = getDashboardModules()
+            val modules = getDashboardModuleList()
             items(modules.chunked(3)) { rowModules ->
                 Row(
                     modifier = Modifier.padding(horizontal = 16.dp).padding(bottom = 12.dp),
@@ -219,7 +219,7 @@ fun DashboardScreen(
 }
 
 @Composable
-private fun PerformanceCard(todaySales: Double, dailyGoal: Double, progress: Float, glowAlpha: Float) {
+private fun DashboardPerformanceCard(todaySales: Double, dailyGoal: Double, progress: Float, glowAlpha: Float) {
     val animatedProgress by animateFloatAsState(
         targetValue = progress.coerceIn(0f, 1f),
         animationSpec = tween(1200, easing = EaseOutCubic),
@@ -289,7 +289,7 @@ private fun PerformanceCard(todaySales: Double, dailyGoal: Double, progress: Flo
 }
 
 @Composable
-private fun SalesBarChart(data: List<com.tts.fieldsales.data.model.DashboardStats>) {
+private fun DashboardSalesBarChart(data: List<com.tts.fieldsales.data.model.DashboardStats>) {
     val maxVal = data.maxOfOrNull { it.total } ?: 1.0
     Row(
         modifier = Modifier.fillMaxWidth().height(60.dp),
@@ -326,7 +326,7 @@ private fun SalesBarChart(data: List<com.tts.fieldsales.data.model.DashboardStat
 
 data class DashboardModule(val title: String, val icon: ImageVector, val route: String, val color: Color, val badge: Int = 0)
 
-private fun getDashboardModules() = listOf(
+private fun getDashboardModuleList() = listOf(
     DashboardModule("Routes", Icons.Default.Map, "routes", Color(0xFF673AB7)),
     DashboardModule("Customers", Icons.Default.People, "customers", Color(0xFF26A69A)),
     DashboardModule("Orders", Icons.Default.ShoppingCart, "orders", StatusBlue),
@@ -379,12 +379,7 @@ private fun DashboardModuleCard(module: DashboardModule, onClick: () -> Unit, mo
     }
 }
 
-@Composable
-private fun Padding(all: Dp, content: @Composable () -> Unit) {
-    Box(Modifier.padding(all)) { content() }
-}
-
-private fun getGreeting(): String {
+private fun getDashboardGreeting(): String {
     val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
     return when {
         hour < 12 -> "Morning"
@@ -393,7 +388,7 @@ private fun getGreeting(): String {
     }
 }
 
-private fun getCurrentDate(): String {
+private fun getDashboardDate(): String {
     val sdf = java.text.SimpleDateFormat("EEEE, d MMM yyyy", java.util.Locale.ENGLISH)
     return sdf.format(java.util.Date())
 }
