@@ -81,5 +81,17 @@ class AppPreferences(private val context: Context) {
     suspend fun getUserId(): Int = context.dataStore.data.first()[KEY_USER_ID] ?: 0
     suspend fun isLoggedIn(): Boolean = context.dataStore.data.first()[KEY_IS_LOGGED_IN] ?: false
     suspend fun getPrinterAddress(): String = context.dataStore.data.first()[KEY_PRINTER_ADDRESS] ?: ""
-    suspend fun getPaperWidth(): String = context.dataStore.data.first()[KEY_PAPER_WIDTH] ?: "3inch"
+
+    /** Returns paper width as Int — 58 or 80 */
+    suspend fun getPaperWidth(): Int {
+        val val_ = context.dataStore.data.first()[KEY_PAPER_WIDTH] ?: "3inch"
+        return if (val_.contains("4") || val_.contains("80")) 80 else 58
+    }
+
+    /** Synchronously save paper width (call from coroutine) */
+    suspend fun setPaperWidth(widthMm: Int) {
+        context.dataStore.edit { prefs ->
+            prefs[KEY_PAPER_WIDTH] = if (widthMm == 80) "4inch" else "3inch"
+        }
+    }
 }

@@ -27,6 +27,7 @@ import com.tts.fieldsales.viewmodel.*
 fun OrderDetailScreen(
     orderId: Int,
     onBack: () -> Unit,
+    onPreview: ((reportName: String, recordId: Int, recordName: String) -> Unit)? = null,
     viewModel: OrderDetailViewModel = viewModel()
 ) {
     val context = LocalContext.current
@@ -121,10 +122,15 @@ fun OrderDetailScreen(
     }
 
     if (showPrint) {
+        val orderName = state.order?.name ?: "Order #$orderId"
         PrintBottomSheet(
             reportName = ThermalPrintManager.REPORT_SALE_ORDER,
             recordId = orderId,
-            onDismiss = { showPrint = false }
+            recordName = orderName,
+            onDismiss = { showPrint = false },
+            onPreview = onPreview?.let { navigate ->
+                { navigate(ThermalPrintManager.REPORT_SALE_ORDER, orderId, orderName) }
+            }
         )
     }
 }
@@ -275,7 +281,8 @@ private fun InvoiceCard(invoice: Invoice, onClick: () -> Unit) {
 @Composable
 fun InvoiceDetailScreen(
     invoiceId: Int,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onPreview: ((reportName: String, recordId: Int, recordName: String) -> Unit)? = null
 ) {
     val context = LocalContext.current
     val prefs = remember { com.tts.fieldsales.data.prefs.AppPreferences(context) }
@@ -351,6 +358,15 @@ fun InvoiceDetailScreen(
 
     if (showPrint) {
         val reportName = if (invoice?.moveType == "out_refund") ThermalPrintManager.REPORT_RETURN else ThermalPrintManager.REPORT_INVOICE
-        PrintBottomSheet(reportName = reportName, recordId = invoiceId, onDismiss = { showPrint = false })
+        val invName = invoice?.name ?: "Invoice #$invoiceId"
+        PrintBottomSheet(
+            reportName = reportName,
+            recordId = invoiceId,
+            recordName = invName,
+            onDismiss = { showPrint = false },
+            onPreview = onPreview?.let { navigate ->
+                { navigate(reportName, invoiceId, invName) }
+            }
+        )
     }
 }

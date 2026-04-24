@@ -51,4 +51,13 @@ sealed class Screen(val route: String) {
 
     // Printer Settings
     object PrinterSetup : Screen("printer_setup")
+
+    // Print Preview
+    object PrintPreview : Screen("print_preview/{reportName}/{recordId}/{recordName}") {
+        fun createRoute(reportName: String, recordId: Int, recordName: String): String {
+            val encoded = java.net.URLEncoder.encode(reportName, "UTF-8")
+            val nameEncoded = java.net.URLEncoder.encode(recordName, "UTF-8")
+            return "print_preview/$encoded/$recordId/$nameEncoded"
+        }
+    }
 }

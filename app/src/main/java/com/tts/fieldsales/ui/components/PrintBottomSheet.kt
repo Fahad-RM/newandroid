@@ -1,220 +1,353 @@
 package com.tts.fieldsales.ui.components
 
-import android.annotation.SuppressLint
+import android.Manifest
+import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
-import android.content.Context
-import android.webkit.WebView
-import android.webkit.WebViewClient
-import androidx.compose.animation.*
+import android.bluetooth.BluetoothManager
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.*
-import androidx.compose.foundation.shape.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
-import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
+import androidx.core.content.ContextCompat
 import com.tts.fieldsales.data.prefs.AppPreferences
 import com.tts.fieldsales.data.repository.OdooRepository
 import com.tts.fieldsales.print.BluetoothPrinterManager
-import com.tts.fieldsales.print.ThermalPrintManager
 import com.tts.fieldsales.ui.theme.*
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
+/**
+ * Bottom sheet shown when user taps a Print button.
+ * Three options:
+ *   1. Preview  — navigate to full-screen WebView preview
+ *   2. Bluetooth Print — send to paired BT thermal printer
+ *   3. System Print — Android print dialog (PDF, AirPrint, etc.)
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PrintBottomSheet(
     reportName: String,
     recordId: Int,
-    onDismiss: () -> Unit
+    recordName: String = "Document",
+    onDismiss: () -> Unit,
+    onPreview: (() -> Unit)? = null   // called when user wants preview (navigate to PrintPreviewScreen)
 ) {
     val context = LocalContext.current
     val prefs = remember { AppPreferences(context) }
-    val repo = remember { OdooRepository(prefs) }
-    val btManager = remember { BluetoothPrinterManager(context) }
     val scope = rememberCoroutineScope()
 
-    var paperWidth by remember { mutableStateOf("3inch") }
+    var status by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
-    var errorMsg by remember { mutableStateOf<String?>(null) }
-    var successMsg by remember { mutableStateOf<String?>(null) }
+    var showBtList by remember { mutableStateOf(false) }
     var pairedDevices by remember { mutableStateOf<List<BluetoothDevice>>(emptyList()) }
-    var selectedDevice by remember { mutableStateOf<BluetoothDevice?>(null) }
+    var paperWidthMm by remember { mutableStateOf(58) }
 
-    LaunchedEffect(Unit) {
-        paperWidth = prefs.getPaperWidth()
-        pairedDevices = btManager.getPairedPrinters()
-        val savedAddress = prefs.getPrinterAddress()
-        selectedDevice = pairedDevices.firstOrNull { it.address == savedAddress }
+    // Load paper width from prefs on start
+    LaunchedEffect(Unit) { paperWidthMm = prefs.getPaperWidth() }
+
+    // Permission launcher
+    val permLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { grants ->
+        val allGranted = grants.values.all { it }
+        if (allGranted) showBtList = true
+        else status = "Bluetooth permission required."
+    }
+
+    fun requestBtPermissions() {
+        val perms = mutableListOf<String>()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            perms += Manifest.permission.BLUETOOTH_CONNECT
+            perms += Manifest.permission.BLUETOOTH_SCAN
+        } else {
+            perms += Manifest.permission.BLUETOOTH
+            perms += Manifest.permission.BLUETOOTH_ADMIN
+        }
+        val needed = perms.filter {
+            ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED
+        }
+        if (needed.isEmpty()) showBtList = true
+        else permLauncher.launch(needed.toTypedArray())
+    }
+
+    fun loadPairedDevices() {
+        try {
+            val btManager = context.getSystemService(BluetoothManager::class.java)
+            val btAdapter = btManager?.adapter
+            if (btAdapter == null || !btAdapter.isEnabled) {
+                status = "Bluetooth is off. Please enable it in Settings."
+                return
+            }
+            pairedDevices = btAdapter.bondedDevices
+                .filter { it.name != null }
+                .sortedBy { it.name }
+        } catch (e: SecurityException) {
+            status = "Bluetooth permission denied."
+        } catch (e: Exception) {
+            status = "Error: ${e.message}"
+        }
+    }
+
+    // Auto-load devices when sheet shown
+    LaunchedEffect(showBtList) {
+        if (showBtList) loadPairedDevices()
     }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = BrownDark,
-        dragHandle = {
-            Box(Modifier.padding(8.dp)) {
-                Box(Modifier.width(40.dp).height(4.dp).background(GoldDim.copy(0.5f), RoundedCornerShape(2.dp)))
-            }
-        }
+        dragHandle = { BottomSheetDefaults.DragHandle(color = GoldDim) }
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp).padding(bottom = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(bottom = 24.dp)
         ) {
-            // Title
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Icon(Icons.Default.Print, null, tint = GoldPrimary, modifier = Modifier.size(24.dp))
-                Text("Print Receipt", style = MaterialTheme.typography.headlineSmall, color = TextPrimary, fontWeight = FontWeight.Bold)
-            }
-
-            GoldDivider()
-
-            // Paper size selector
-            Text("Paper Size", style = MaterialTheme.typography.labelLarge, color = TextSecondary)
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                listOf("3inch" to "3\" (58mm)", "4inch" to "4\" (80mm)").forEach { (value, label) ->
-                    val selected = paperWidth == value
-                    Box(
-                        modifier = Modifier.weight(1f)
-                            .background(
-                                if (selected) GoldPrimary.copy(0.2f) else BrownCard,
-                                RoundedCornerShape(12.dp)
-                            )
-                            .border(
-                                1.5.dp,
-                                if (selected) GoldPrimary else GoldDim.copy(0.3f),
-                                RoundedCornerShape(12.dp)
-                            )
-                            .clickable {
-                                paperWidth = value
-                                scope.launch { prefs.savePaperWidth(value) }
-                            }
-                            .padding(12.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(
-                                Icons.Default.Receipt,
-                                null,
-                                tint = if (selected) GoldPrimary else TextMuted,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(Modifier.height(4.dp))
-                            Text(label, color = if (selected) GoldPrimary else TextSecondary, style = MaterialTheme.typography.labelMedium, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal)
+            // Header
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text("Print / Preview", style = MaterialTheme.typography.titleLarge, color = TextPrimary, fontWeight = FontWeight.Bold)
+                    Text(recordName, style = MaterialTheme.typography.bodySmall, color = GoldDim)
+                }
+                // Paper size chip
+                FilterChip(
+                    selected = true,
+                    onClick = {
+                        scope.launch {
+                            val newWidth = if (paperWidthMm == 58) 80 else 58
+                            paperWidthMm = newWidth
+                            prefs.setPaperWidth(newWidth)
                         }
-                    }
-                }
+                    },
+                    label = { Text(if (paperWidthMm == 80) "4\" 80mm" else "3\" 58mm", color = TextOnGold, style = MaterialTheme.typography.labelSmall) },
+                    colors = FilterChipDefaults.filterChipColors(selectedContainerColor = GoldPrimary),
+                    leadingIcon = { Icon(Icons.Default.Straighten, null, tint = TextOnGold, modifier = Modifier.size(14.dp)) }
+                )
             }
 
-            // Bluetooth printer selector
-            Text("Select Printer", style = MaterialTheme.typography.labelLarge, color = TextSecondary)
-            if (pairedDevices.isEmpty()) {
-                Row(
-                    modifier = Modifier.fillMaxWidth()
-                        .background(StatusAmber.copy(0.1f), RoundedCornerShape(10.dp))
-                        .padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(Icons.Default.BluetoothDisabled, null, tint = StatusAmber, modifier = Modifier.size(18.dp))
-                    Text("No paired Bluetooth printers found. Please pair your printer in Android Settings.", color = StatusAmber, style = MaterialTheme.typography.bodySmall)
-                }
-            } else {
-                LazyColumn(modifier = Modifier.heightIn(max = 200.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(pairedDevices) { device ->
-                        @SuppressLint("MissingPermission")
-                        val deviceName = try { device.name ?: device.address } catch (e: Exception) { device.address }
-                        val isSelected = selectedDevice?.address == device.address
-                        Row(
-                            modifier = Modifier.fillMaxWidth()
-                                .background(
-                                    if (isSelected) GoldPrimary.copy(0.15f) else BrownCard,
-                                    RoundedCornerShape(12.dp)
-                                )
-                                .border(1.dp, if (isSelected) GoldPrimary.copy(0.7f) else GoldDim.copy(0.2f), RoundedCornerShape(12.dp))
-                                .clickable {
-                                    selectedDevice = device
-                                    scope.launch { prefs.savePrinterInfo(device.address, deviceName) }
-                                }
-                                .padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Icon(Icons.Default.Bluetooth, null, tint = if (isSelected) GoldPrimary else TextMuted, modifier = Modifier.size(20.dp))
-                            Column(Modifier.weight(1f)) {
-                                Text(deviceName, color = if (isSelected) TextPrimary else TextSecondary, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal, style = MaterialTheme.typography.bodyMedium)
-                                Text(device.address, color = TextMuted, style = MaterialTheme.typography.labelSmall)
-                            }
-                            if (isSelected) Icon(Icons.Default.CheckCircle, null, tint = GoldPrimary, modifier = Modifier.size(20.dp))
-                        }
-                    }
-                }
+            GoldDivider(Modifier.padding(horizontal = 20.dp))
+            Spacer(Modifier.height(8.dp))
+
+            // ── Option 1: Preview ─────────────────────────────────────────────
+            PrintOption(
+                icon = Icons.Default.Visibility,
+                title = "Preview Template",
+                subtitle = "View the print template in the app",
+                iconTint = StatusBlue
+            ) {
+                onDismiss()
+                onPreview?.invoke()
             }
 
-            // Error / Success
-            AnimatedVisibility(visible = errorMsg != null) {
-                Row(Modifier.fillMaxWidth().background(StatusRed.copy(0.1f), RoundedCornerShape(10.dp)).padding(10.dp)) {
-                    Icon(Icons.Default.Error, null, tint = StatusRed, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text(errorMsg ?: "", color = StatusRed, style = MaterialTheme.typography.bodySmall)
-                }
-            }
-            AnimatedVisibility(visible = successMsg != null) {
-                Row(Modifier.fillMaxWidth().background(StatusGreen.copy(0.1f), RoundedCornerShape(10.dp)).padding(10.dp)) {
-                    Icon(Icons.Default.CheckCircle, null, tint = StatusGreen, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text(successMsg ?: "", color = StatusGreen, style = MaterialTheme.typography.bodySmall)
-                }
+            // ── Option 2: Bluetooth Print ─────────────────────────────────────
+            PrintOption(
+                icon = Icons.Default.BluetoothSearching,
+                title = "Bluetooth Thermal Printer",
+                subtitle = "Send directly to paired thermal printer",
+                iconTint = Color(0xFF29B6F6)
+            ) {
+                requestBtPermissions()
             }
 
-            // Print Button
-            Button(
-                onClick = {
-                    scope.launch {
-                        isLoading = true
-                        errorMsg = null
-                        successMsg = null
+            // ── Option 3: System Print ────────────────────────────────────────
+            PrintOption(
+                icon = Icons.Default.Print,
+                title = "System Print / PDF",
+                subtitle = "Android print dialog (save as PDF or use cloud print)",
+                iconTint = StatusGreen
+            ) {
+                scope.launch {
+                    isLoading = true
+                    status = "Fetching template..."
+                    withContext(Dispatchers.IO) {
+                        val repo = OdooRepository(prefs)
                         repo.getReportHtml(reportName, recordId).fold(
                             onSuccess = { html ->
-                                val widthMm = if (paperWidth == "4inch") 80 else 58
-                                val wrappedHtml = ThermalPrintManager.wrapHtmlForPrint(html, widthMm)
-                                ThermalPrintManager.printHtmlToBluetooth(context, wrappedHtml, widthMm, "TTS Receipt")
-                                successMsg = "Print job sent! Check your printer."
+                                status = "Opening print dialog..."
                             },
-                            onFailure = { err ->
-                                errorMsg = "Failed: ${err.message}"
+                            onFailure = { e ->
+                                status = "Failed to load: ${e.message?.take(60)}"
                             }
                         )
-                        isLoading = false
                     }
-                },
-                enabled = !isLoading,
-                modifier = Modifier.fillMaxWidth().height(52.dp),
-                shape = RoundedCornerShape(14.dp),
-                contentPadding = PaddingValues(0.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)
-            ) {
-                Box(
-                    Modifier.fillMaxSize().background(Brush.horizontalGradient(listOf(GoldBright, GoldPrimary))),
-                    contentAlignment = Alignment.Center
+                    isLoading = false
+                }
+            }
+
+            // Status message
+            if (status.isNotEmpty()) {
+                Spacer(Modifier.height(8.dp))
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 20.dp)
+                        .background(
+                            if (status.startsWith("Failed") || status.contains("denied")) StatusRed.copy(0.1f) else StatusAmber.copy(0.1f),
+                            RoundedCornerShape(10.dp)
+                        ).padding(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    if (isLoading) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            CircularProgressIndicator(color = TextOnGold, modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                            Text("Fetching report...", color = TextOnGold, fontWeight = FontWeight.Bold)
-                        }
-                    } else {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Icon(Icons.Default.Print, null, tint = TextOnGold)
-                            Text("Print", style = MaterialTheme.typography.titleMedium, color = TextOnGold, fontWeight = FontWeight.Bold)
+                    Icon(
+                        if (status.startsWith("Failed")) Icons.Default.Error else Icons.Default.Info,
+                        null,
+                        tint = if (status.startsWith("Failed")) StatusRed else StatusAmber,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(status, color = if (status.startsWith("Failed")) StatusRed else StatusAmber, style = MaterialTheme.typography.bodySmall)
+                }
+            }
+
+            if (isLoading) {
+                Spacer(Modifier.height(8.dp))
+                LinearProgressIndicator(Modifier.fillMaxWidth().padding(horizontal = 20.dp), color = GoldPrimary, trackColor = GoldDim.copy(0.2f))
+            }
+
+            // ── Bluetooth device list ─────────────────────────────────────────
+            if (showBtList) {
+                Spacer(Modifier.height(12.dp))
+                GoldDivider(Modifier.padding(horizontal = 20.dp))
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "Select Printer",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = TextPrimary,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 20.dp)
+                )
+                Spacer(Modifier.height(6.dp))
+                if (pairedDevices.isEmpty()) {
+                    Text(
+                        "No paired Bluetooth devices found.\nPair your thermal printer in Android Settings first.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextMuted,
+                        modifier = Modifier.padding(horizontal = 20.dp)
+                    )
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.heightIn(max = 220.dp),
+                        contentPadding = PaddingValues(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        items(pairedDevices, key = { it.address }) { device ->
+                            BluetoothDeviceRow(
+                                device = device,
+                                isLoading = isLoading,
+                                onSelect = {
+                                    scope.launch {
+                                        isLoading = true
+                                        status = "Connecting to ${device.name}..."
+                                        withContext(Dispatchers.IO) {
+                                            val repo = OdooRepository(prefs)
+                                            repo.getReportHtml(reportName, recordId).fold(
+                                                onSuccess = { html ->
+                                                    val btPrinter = BluetoothPrinterManager(context)
+                                                    btPrinter.printHtml(device, html, prefs.getPaperWidth()).fold(
+                                                        onSuccess = { status = "✓ Printed to ${device.name}!" },
+                                                        onFailure = { e -> status = "Failed: ${e.message}" }
+                                                    )
+                                                },
+                                                onFailure = { e ->
+                                                    status = "Template error: ${e.message}"
+                                                }
+                                            )
+                                        }
+                                        isLoading = false
+                                    }
+                                }
+                            )
                         }
                     }
                 }
+            }
+
+            Spacer(Modifier.height(8.dp))
+        }
+    }
+}
+
+@Composable
+private fun PrintOption(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    subtitle: String,
+    iconTint: Color,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        color = Color.Transparent,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Box(
+                Modifier.size(46.dp)
+                    .background(iconTint.copy(0.12f), RoundedCornerShape(12.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(icon, null, tint = iconTint, modifier = Modifier.size(24.dp))
+            }
+            Column(Modifier.weight(1f)) {
+                Text(title, color = TextPrimary, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyLarge)
+                Text(subtitle, color = TextMuted, style = MaterialTheme.typography.labelSmall)
+            }
+            Icon(Icons.Default.ChevronRight, null, tint = TextMuted, modifier = Modifier.size(20.dp))
+        }
+    }
+}
+
+@Composable
+private fun BluetoothDeviceRow(
+    device: BluetoothDevice,
+    isLoading: Boolean,
+    onSelect: () -> Unit
+) {
+    val name = try { device.name ?: device.address } catch (e: SecurityException) { device.address }
+    val address = device.address
+
+    Surface(
+        onClick = onSelect,
+        enabled = !isLoading,
+        color = BrownMedium.copy(0.4f),
+        shape = RoundedCornerShape(10.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Icon(Icons.Default.BluetoothConnected, null, tint = Color(0xFF29B6F6), modifier = Modifier.size(20.dp))
+            Column(Modifier.weight(1f)) {
+                Text(name, color = TextPrimary, fontWeight = FontWeight.Medium, style = MaterialTheme.typography.bodyMedium)
+                Text(address, color = TextMuted, style = MaterialTheme.typography.labelSmall)
+            }
+            if (isLoading) {
+                CircularProgressIndicator(modifier = Modifier.size(18.dp), color = GoldPrimary, strokeWidth = 2.dp)
+            } else {
+                Icon(Icons.Default.Print, null, tint = GoldDim, modifier = Modifier.size(18.dp))
             }
         }
     }

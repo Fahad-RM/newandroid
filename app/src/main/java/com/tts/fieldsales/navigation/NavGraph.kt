@@ -47,7 +47,13 @@ fun AppNavGraph(navController: NavHostController) {
             arguments = listOf(navArgument("orderId") { type = NavType.IntType })
         ) { backStack ->
             val orderId = backStack.arguments?.getInt("orderId") ?: return@composable
-            OrderDetailScreen(orderId = orderId, onBack = { navController.popBackStack() })
+            OrderDetailScreen(
+                orderId = orderId,
+                onBack = { navController.popBackStack() },
+                onPreview = { reportName, recordId, recordName ->
+                    navController.navigate(Screen.PrintPreview.createRoute(reportName, recordId, recordName))
+                }
+            )
         }
 
         composable(Screen.NewOrder.route) {
@@ -68,7 +74,13 @@ fun AppNavGraph(navController: NavHostController) {
             arguments = listOf(navArgument("invoiceId") { type = NavType.IntType })
         ) { backStack ->
             val invoiceId = backStack.arguments?.getInt("invoiceId") ?: return@composable
-            InvoiceDetailScreen(invoiceId = invoiceId, onBack = { navController.popBackStack() })
+            InvoiceDetailScreen(
+                invoiceId = invoiceId,
+                onBack = { navController.popBackStack() },
+                onPreview = { reportName, recordId, recordName ->
+                    navController.navigate(Screen.PrintPreview.createRoute(reportName, recordId, recordName))
+                }
+            )
         }
 
         composable(Screen.Payments.route) {
@@ -135,6 +147,25 @@ fun AppNavGraph(navController: NavHostController) {
 
         composable(Screen.PrinterSetup.route) {
             PrinterSetupScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable(
+            Screen.PrintPreview.route,
+            arguments = listOf(
+                navArgument("reportName") { type = NavType.StringType },
+                navArgument("recordId")   { type = NavType.IntType },
+                navArgument("recordName") { type = NavType.StringType }
+            )
+        ) { backStack ->
+            val reportName  = java.net.URLDecoder.decode(backStack.arguments?.getString("reportName") ?: "", "UTF-8")
+            val recordId    = backStack.arguments?.getInt("recordId") ?: 0
+            val recordName  = java.net.URLDecoder.decode(backStack.arguments?.getString("recordName") ?: "Document", "UTF-8")
+            PrintPreviewScreen(
+                reportName  = reportName,
+                recordId    = recordId,
+                recordName  = recordName,
+                onBack      = { navController.popBackStack() }
+            )
         }
     }
 }
