@@ -127,11 +127,11 @@ fun DashboardScreen(
                 Box(modifier = Modifier.padding(horizontal = 16.dp)) {
                     GlassCard {
                         Text("7-Day Sales", style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.Bold)
-                        Spacer(Modifier.height(16.dp))
+                        Spacer(Modifier.height(8.dp))
                         if (state.chartData.isNotEmpty()) {
                             SalesBarChart(data = state.chartData)
                         } else {
-                            ShimmerBox(Modifier.fillMaxWidth().height(100.dp))
+                            ShimmerBox(Modifier.fillMaxWidth().height(60.dp))
                         }
                     }
                 }
@@ -254,7 +254,7 @@ private fun PerformanceCard(todaySales: Double, dailyGoal: Double, progress: Flo
 private fun SalesBarChart(data: List<com.tts.fieldsales.data.model.DashboardStats>) {
     val maxVal = data.maxOfOrNull { it.total } ?: 1.0
     Row(
-        modifier = Modifier.fillMaxWidth().height(100.dp),
+        modifier = Modifier.fillMaxWidth().height(60.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.Bottom
     ) {

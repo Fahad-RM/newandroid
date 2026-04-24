@@ -415,15 +415,18 @@ fun AppScaffold(
 @Composable
 fun QuickStatCard(title: String, value: String, icon: ImageVector, color: Color, modifier: Modifier = Modifier) {
     GlassCard(modifier = modifier) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
             Box(
-                modifier = Modifier.size(44.dp).background(color.copy(0.15f), CircleShape),
+                modifier = Modifier.size(36.dp).background(color.copy(0.15f), CircleShape),
                 contentAlignment = Alignment.Center
-            ) { Icon(icon, null, tint = color, modifier = Modifier.size(22.dp)) }
-            Column {
-                Text(value, style = MaterialTheme.typography.titleLarge, color = TextPrimary, fontWeight = FontWeight.Bold)
-                Text(title, style = MaterialTheme.typography.labelSmall, color = TextSecondary)
-            }
+            ) { Icon(icon, null, tint = color, modifier = Modifier.size(18.dp)) }
+            Spacer(Modifier.height(8.dp))
+            Text(value, style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.Bold)
+            Text(title, style = MaterialTheme.typography.labelSmall, color = TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }
