@@ -1,22 +1,29 @@
 package com.tts.fieldsales.data.api
 
 import com.google.gson.GsonBuilder
-import okhttp3.JavaNetCookieJar
-import okhttp3.OkHttpClient
+import okhttp3.*
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-import java.net.CookieManager
-import java.net.CookiePolicy
 import java.util.concurrent.TimeUnit
+
+/** Simple in-memory cookie jar — persists session cookies across requests */
+private class InMemoryCookieJar : CookieJar {
+    private val store = mutableMapOf<String, List<Cookie>>()
+    override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
+        store[url.host] = cookies
+    }
+    override fun loadForRequest(url: HttpUrl): List<Cookie> {
+        return store.values.flatten()
+    }
+    fun clear() = store.clear()
+}
 
 object OdooClient {
 
     private var baseUrl: String = "https://placeholder.odoo.com"
     private var retrofit: Retrofit? = null
-    private val cookieManager = CookieManager().apply {
-        setCookiePolicy(CookiePolicy.ACCEPT_ALL)
-    }
+    private val cookieJar = InMemoryCookieJar()
 
     private val gson = GsonBuilder()
         .setLenient()
@@ -28,7 +35,7 @@ object OdooClient {
             level = HttpLoggingInterceptor.Level.BODY
         }
         OkHttpClient.Builder()
-            .cookieJar(JavaNetCookieJar(cookieManager))
+            .cookieJar(cookieJar)
             .addInterceptor(logging)
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(60, TimeUnit.SECONDS)
@@ -54,7 +61,7 @@ object OdooClient {
     }
 
     fun clearCookies() {
-        cookieManager.cookieStore.removeAll()
+        cookieJar.clear()
     }
 
     fun buildJsonRpcBody(method: String, model: String, args: List<Any> = emptyList(), kwargs: Map<String, Any> = emptyMap()): Map<String, Any> {

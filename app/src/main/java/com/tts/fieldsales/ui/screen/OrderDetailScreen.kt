@@ -219,10 +219,10 @@ fun InvoicesScreen(
 
     AppScaffold(title = "Invoices", onBack = onBack) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).background(Brush.verticalGradient(listOf(BrownDark, BrownDarkest)))) {
-            TabRow(selectedTabIndex = selectedTab, containerColor = BrownDark, contentColor = GoldPrimary,
-                indicator = { tabPositions ->
-                    TabRowDefaults.SecondaryIndicator(Modifier.tabIndicatorOffset(tabPositions[selectedTab]), color = GoldPrimary)
-                }
+            TabRow(
+                selectedTabIndex = selectedTab,
+                containerColor = BrownDark,
+                contentColor = GoldPrimary
             ) {
                 tabs.forEachIndexed { idx, (label, _) ->
                     Tab(selected = selectedTab == idx, onClick = { selectedTab = idx },

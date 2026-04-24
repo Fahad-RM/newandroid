@@ -75,8 +75,11 @@ object ThermalPrintManager {
     private fun createPrintJob(context: Context, webView: WebView, jobName: String, paperWidthMm: Int): PrintJob? {
         val printManager = context.getSystemService(Context.PRINT_SERVICE) as PrintManager
 
-        val paperWidth = if (paperWidthMm == 80) PrintAttributes.MediaSize.PL_CARD_148_105 else {
-            // 58mm = ~2.28 inches = 580 mils width
+        val paperWidth = if (paperWidthMm == 80) {
+            // 80mm = ~3.15 inches = 3150 mils
+            PrintAttributes.MediaSize("thermal_80mm", "Thermal 80mm", 3150, 8270)
+        } else {
+            // 58mm = ~2.28 inches = 2280 mils
             PrintAttributes.MediaSize("thermal_58mm", "Thermal 58mm", 2280, 8270)
         }
 

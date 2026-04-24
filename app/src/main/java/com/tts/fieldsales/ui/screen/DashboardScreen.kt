@@ -297,7 +297,7 @@ private fun getDashboardModules() = listOf(
     DashboardModule("Route & Visits", Icons.Default.Map, "routes", Color(0xFF26A69A)),
     DashboardModule("Expenses", Icons.Default.AccountBalance, "expenses", StatusAmber),
     DashboardModule("Attendance", Icons.Default.AccessTime, "attendance", Color(0xFFEC407A)),
-    DashboardModule("Day Closing", Icons.Default.SummarizeOutlined, "closing", Color(0xFFFF7043)),
+    DashboardModule("Day Closing", Icons.Default.AssignmentTurnedIn, "closing", Color(0xFFFF7043)),
     DashboardModule("Settings", Icons.Default.Settings, "settings", TextMuted),
 )
 

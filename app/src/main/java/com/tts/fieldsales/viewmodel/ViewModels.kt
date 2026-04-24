@@ -63,39 +63,33 @@ class OrderDetailViewModel : ViewModel() {
     fun load(context: Context, orderId: Int) = viewModelScope.launch {
         val repo = OdooRepository(AppPreferences(context))
         _state.update { it.copy(isLoading = true) }
-        // Load order
-        repo.getSaleOrders().onSuccess { orders ->
-            val order = orders.firstOrNull { it.id == orderId }
-            _state.update { it.copy(order = order) }
-        }
-        // Load lines
-        repo.getOrderLines(orderId).fold(
-            onSuccess = { lines -> _state.update { it.copy(lines = lines, isLoading = false) } },
-            onFailure = { _state.update { it.copy(isLoading = false, error = it.error) } }
+        repo.getSaleOrders().fold(
+            onSuccess = { list -> _state.update { s -> s.copy(order = list.firstOrNull { it.id == orderId }) } },
+            onFailure = { e -> _state.update { s -> s.copy(isLoading = false, error = e.message) } }
         )
     }
 
     fun submitApproval(context: Context, orderId: Int) = viewModelScope.launch {
         val repo = OdooRepository(AppPreferences(context))
         repo.submitOrderForApproval(orderId).fold(
-            onSuccess = { _state.update { it.copy(actionMessage = "Order submitted for approval.") }; load(context, orderId) },
-            onFailure = { _state.update { it.copy(actionMessage = "Failed: ${it.message}") } }
+            onSuccess = { _state.update { s -> s.copy(actionMessage = "Order submitted for approval.") }; load(context, orderId) },
+            onFailure = { e -> _state.update { s -> s.copy(actionMessage = "Failed: ${e.message}") } }
         )
     }
 
     fun confirmOrder(context: Context, orderId: Int) = viewModelScope.launch {
         val repo = OdooRepository(AppPreferences(context))
         repo.confirmOrder(orderId).fold(
-            onSuccess = { _state.update { it.copy(actionMessage = "Order confirmed!") }; load(context, orderId) },
-            onFailure = { _state.update { it.copy(actionMessage = "Failed: ${it.message}") } }
+            onSuccess = { _state.update { s -> s.copy(actionMessage = "Order confirmed!") }; load(context, orderId) },
+            onFailure = { e -> _state.update { s -> s.copy(actionMessage = "Failed: ${e.message}") } }
         )
     }
 
     fun createInvoice(context: Context, orderId: Int) = viewModelScope.launch {
         val repo = OdooRepository(AppPreferences(context))
         repo.createInvoiceFromOrder(orderId).fold(
-            onSuccess = { ids -> _state.update { it.copy(actionMessage = if (ids.isNotEmpty()) "Invoice created!" else "Invoice already exists.") } },
-            onFailure = { _state.update { it.copy(actionMessage = "Failed: ${it.message}") } }
+            onSuccess = { ids -> _state.update { s -> s.copy(actionMessage = if (ids.isNotEmpty()) "Invoice created!" else "Invoice already exists.") } },
+            onFailure = { e -> _state.update { s -> s.copy(actionMessage = "Failed: ${e.message}") } }
         )
     }
 
@@ -147,8 +141,8 @@ class PaymentsViewModel : ViewModel() {
     fun createPayment(context: Context, partnerId: Int, amount: Double, journalId: Int, memo: String) = viewModelScope.launch {
         val repo = OdooRepository(AppPreferences(context))
         repo.createPayment(partnerId, amount, journalId, memo).fold(
-            onSuccess = { _state.update { it.copy(actionMessage = "Payment recorded!") }; load(context) },
-            onFailure = { _state.update { it.copy(actionMessage = "Failed: ${it.message}") } }
+            onSuccess = { _state.update { s -> s.copy(actionMessage = "Payment recorded!") }; load(context) },
+            onFailure = { e -> _state.update { s -> s.copy(actionMessage = "Failed: ${e.message}") } }
         )
     }
 
@@ -198,16 +192,16 @@ class RouteViewModel : ViewModel() {
     fun startVisit(context: Context, visitId: Int, lat: Double, lng: Double) = viewModelScope.launch {
         val repo = OdooRepository(AppPreferences(context))
         repo.startVisit(visitId, lat, lng).fold(
-            onSuccess = { _state.update { it.copy(actionMsg = "Visit started!") }; load(context) },
-            onFailure = { _state.update { it.copy(actionMsg = "Failed: ${it.message}") } }
+            onSuccess = { _state.update { s -> s.copy(actionMsg = "Visit started!") }; load(context) },
+            onFailure = { e -> _state.update { s -> s.copy(actionMsg = "Failed: ${e.message}") } }
         )
     }
 
     fun endVisit(context: Context, visitId: Int, lat: Double, lng: Double, notes: String) = viewModelScope.launch {
         val repo = OdooRepository(AppPreferences(context))
         repo.endVisit(visitId, lat, lng, notes).fold(
-            onSuccess = { _state.update { it.copy(actionMsg = "Visit completed!") }; load(context) },
-            onFailure = { _state.update { it.copy(actionMsg = "Failed: ${it.message}") } }
+            onSuccess = { _state.update { s -> s.copy(actionMsg = "Visit completed!") }; load(context) },
+            onFailure = { e -> _state.update { s -> s.copy(actionMsg = "Failed: ${e.message}") } }
         )
     }
 
@@ -240,16 +234,16 @@ class AttendanceViewModel : ViewModel() {
     fun checkIn(context: Context, lat: Double, lng: Double) = viewModelScope.launch {
         val repo = OdooRepository(AppPreferences(context))
         repo.checkIn(lat, lng).fold(
-            onSuccess = { r -> _state.update { it.copy(actionMsg = r.message ?: "Checked in!") }; load(context) },
-            onFailure = { _state.update { it.copy(actionMsg = "Failed: ${it.message}") } }
+            onSuccess = { r -> _state.update { s -> s.copy(actionMsg = r.message ?: "Checked in!") }; load(context) },
+            onFailure = { e -> _state.update { s -> s.copy(actionMsg = "Failed: ${e.message}") } }
         )
     }
 
     fun checkOut(context: Context, lat: Double, lng: Double) = viewModelScope.launch {
         val repo = OdooRepository(AppPreferences(context))
         repo.checkOut(lat, lng).fold(
-            onSuccess = { r -> _state.update { it.copy(actionMsg = r.message ?: "Checked out!") }; load(context) },
-            onFailure = { _state.update { it.copy(actionMsg = "Failed: ${it.message}") } }
+            onSuccess = { r -> _state.update { s -> s.copy(actionMsg = r.message ?: "Checked out!") }; load(context) },
+            onFailure = { e -> _state.update { s -> s.copy(actionMsg = "Failed: ${e.message}") } }
         )
     }
 

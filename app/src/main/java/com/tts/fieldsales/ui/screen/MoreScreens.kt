@@ -1,6 +1,7 @@
 package com.tts.fieldsales.ui.screen
 
 import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
@@ -10,6 +11,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -300,8 +302,8 @@ fun AttendanceScreen(
                 Text("Since: ${state.checkInTime}", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
             }
 
-            state.actionMessage?.let {
-                Text(it, color = if (it.contains("Failed")) StatusRed else StatusGreen, style = MaterialTheme.typography.bodyMedium)
+            state.actionMsg?.let { msg ->
+                Text(text = msg, color = if (msg.contains("Failed")) StatusRed else StatusGreen, style = MaterialTheme.typography.bodyMedium)
             }
 
             GoldButton(
