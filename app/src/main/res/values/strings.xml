@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">TTS Field Sales</string>
+    <string name="app_description">Professional Field Sales Management for Odoo</string>
+    <string name="login_title">Sign In</string>
+    <string name="dashboard_title">Dashboard</string>
+    <string name="orders_title">Sales Orders</string>
+    <string name="invoices_title">Invoices</string>
+    <string name="payments_title">Payments</string>
+    <string name="returns_title">Returns</string>
+    <string name="customers_title">Customers</string>
+    <string name="routes_title">Routes &amp; Visits</string>
+    <string name="expenses_title">Expenses</string>
+    <string name="attendance_title">Attendance</string>
+    <string name="closing_title">Day Closing</string>
+    <string name="settings_title">Settings</string>
+</resources>
