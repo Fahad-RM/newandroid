@@ -318,7 +318,9 @@ class OdooRepository(private val prefs: AppPreferences) {
             "limit" to 500
         ))
         val response = OdooClient.getService().call(url, body)
-        val result = response.body()?.result ?: return@runCatching emptyList()
+        val resBody = response.body()
+        if (resBody?.error != null) throw Exception(resBody.error.message ?: resBody.error.data?.message ?: "Unknown Odoo Error")
+        val result = resBody?.result ?: return@runCatching emptyList()
         val type = object : TypeToken<List<Product>>() {}.type
         gson.fromJson(result, type)
     }
@@ -417,7 +419,7 @@ class OdooRepository(private val prefs: AppPreferences) {
         }
 
         // 2. Fallback: Standard Odoo RPC call to render report
-        val rpcBody = buildRpc("render_report", "ir.actions.report", args = listOf(reportName, listOf(resId), mapOf("report_type" to "html")))
+        val rpcBody = buildRpc("_render_qweb_html", "ir.actions.report", args = listOf(reportName, listOf(resId)))
         val rpcResponse = OdooClient.getService().call("$odooUrl/web/dataset/call_kw", rpcBody)
         if (!rpcResponse.isSuccessful) throw Exception("HTTP ${rpcResponse.code()}")
         

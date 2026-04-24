@@ -159,9 +159,9 @@ fun DashboardScreen(
                 Spacer(Modifier.height(12.dp))
             }
 
-            // Grid of modules (2 columns)
+            // Grid of modules (3 columns)
             val modules = getDashboardModules()
-            items(modules.chunked(2)) { rowModules ->
+            items(modules.chunked(3)) { rowModules ->
                 Row(
                     modifier = Modifier.padding(horizontal = 16.dp).padding(bottom = 12.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -173,7 +173,46 @@ fun DashboardScreen(
                             modifier = Modifier.weight(1f)
                         )
                     }
-                    if (rowModules.size == 1) Spacer(Modifier.weight(1f))
+                    }
+                    if (rowModules.size < 3) {
+                        for (i in 0 until (3 - rowModules.size)) {
+                            Spacer(Modifier.weight(1f))
+                        }
+                    }
+                }
+            }
+
+            // ─── TAKE A BREAK BUTTON ──────────────────────────────
+            item {
+                Spacer(Modifier.height(16.dp))
+                Box(modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth()) {
+                    Button(
+                        onClick = { /* TODO */ },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(64.dp)
+                            .shadow(12.dp, RoundedCornerShape(16.dp), ambientColor = BrownDeep, spotColor = BrownDeep),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+                        contentPadding = PaddingValues(),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Brush.horizontalGradient(listOf(BrownDarkest, BrownMedium))),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Box(
+                                    modifier = Modifier.size(40.dp).background(BrownLight.copy(0.4f), RoundedCornerShape(10.dp)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(Icons.Default.LocalCafe, contentDescription = "Take a Break", tint = GoldPrimary, modifier = Modifier.size(24.dp))
+                                }
+                                Text("TAKE A BREAK", color = TextPrimary, fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleMedium)
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -289,16 +328,18 @@ private fun SalesBarChart(data: List<com.tts.fieldsales.data.model.DashboardStat
 data class DashboardModule(val title: String, val icon: ImageVector, val route: String, val color: Color, val badge: Int = 0)
 
 private fun getDashboardModules() = listOf(
-    DashboardModule("Sales Orders", Icons.Default.ShoppingCart, "orders", GoldPrimary),
-    DashboardModule("Invoices", Icons.Default.Receipt, "invoices", StatusBlue),
-    DashboardModule("Payments", Icons.Default.Payment, "payments", StatusGreen),
+    DashboardModule("Routes", Icons.Default.Map, "routes", Color(0xFF673AB7)),
+    DashboardModule("Customers", Icons.Default.People, "customers", Color(0xFF26A69A)),
+    DashboardModule("Orders", Icons.Default.ShoppingCart, "orders", StatusBlue),
+    DashboardModule("Invoices", Icons.Default.Receipt, "invoices", StatusRed),
+    DashboardModule("Payments", Icons.Default.Payment, "payments", StatusAmber),
     DashboardModule("Returns", Icons.Default.AssignmentReturn, "returns", StatusRed),
-    DashboardModule("Customers", Icons.Default.People, "customers", Color(0xFF9C6EDC)),
-    DashboardModule("Route & Visits", Icons.Default.Map, "routes", Color(0xFF26A69A)),
-    DashboardModule("Expenses", Icons.Default.AccountBalance, "expenses", StatusAmber),
-    DashboardModule("Attendance", Icons.Default.AccessTime, "attendance", Color(0xFFEC407A)),
-    DashboardModule("Day Closing", Icons.Default.AssignmentTurnedIn, "closing", Color(0xFFFF7043)),
-    DashboardModule("Settings", Icons.Default.Settings, "settings", TextMuted),
+    DashboardModule("Request", Icons.Default.LocalShipping, "request", Color(0xFF9C27B0)),
+    DashboardModule("Stock", Icons.Default.Inventory, "stock", StatusGreen),
+    DashboardModule("Products", Icons.Default.ShoppingBag, "products", Color(0xFFE91E63)),
+    DashboardModule("Statement", Icons.Default.Description, "statement", StatusBlue),
+    DashboardModule("Closing", Icons.Default.PowerSettingsNew, "closing", StatusBlue),
+    DashboardModule("Expenses", Icons.Default.Calculate, "expenses", GoldPrimary),
 )
 
 @Composable

@@ -45,13 +45,9 @@ fun OrderDetailScreen(
     }
 
     AppScaffold(
-        title = state.order?.name ?: "Order Detail",
+        title = "",
         onBack = onBack,
-        actions = {
-            IconButton(onClick = { showPrint = true }) {
-                Icon(Icons.Default.Print, "Print", tint = GoldPrimary)
-            }
-        }
+        containerColor = BrownDeep
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding).background(Brush.verticalGradient(listOf(BrownDark, BrownDarkest)))) {
             if (state.isLoading) {
@@ -61,66 +57,98 @@ fun OrderDetailScreen(
                 if (order == null) {
                     EmptyState("Order not found", Icons.Default.Error)
                 } else {
-                    LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                        // Status banner
-                        item {
-                            OrderStatusBanner(order = order, viewModel = viewModel, context = context, onInvoiceDetail = onInvoiceDetail)
-                        }
-
-                        // Info card
-                        item {
-                            GlassCard {
-                                SectionHeader("Order Information")
-                                Spacer(Modifier.height(12.dp))
-                                InfoRow("Customer", order.partnerId.toOdooName(), Icons.Default.Person)
-                                InfoRow("Date", order.dateOrder?.take(16)?.replace("T", " ") ?: "-", Icons.Default.CalendarToday)
-                                InfoRow("Warehouse", order.warehouseId.toOdooName(), Icons.Default.Warehouse)
-                                InfoRow("Status", order.state.replace("_", " "), Icons.Default.Info)
+                    Column(Modifier.fillMaxSize()) {
+                        // Top Header Section
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Brush.verticalGradient(listOf(BrownMedium, BrownDark)), RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
+                                .padding(top = 16.dp, bottom = 24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Box(modifier = Modifier.background(GoldDim.copy(0.3f), RoundedCornerShape(16.dp)).padding(horizontal = 12.dp, vertical = 6.dp)) {
+                                Text("# ${order.name}", color = TextPrimary, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                             }
+                            Spacer(Modifier.height(16.dp))
+                            Text("GRAND TOTAL", style = MaterialTheme.typography.labelMedium, color = TextSecondary, letterSpacing = 1.5.sp)
+                            Text("%.2f".format(order.amountTotal), style = MaterialTheme.typography.displayMedium, color = GoldPrimary, fontWeight = FontWeight.Bold)
+                            Spacer(Modifier.height(8.dp))
+                            Text(order.partnerId.toOdooName(), style = MaterialTheme.typography.bodySmall, color = TextPrimary, textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 24.dp))
+                            if ((order.warehouseId.toOdooName("")).isNotBlank()) {
+                                Text(order.warehouseId.toOdooName(""), style = MaterialTheme.typography.labelSmall, color = TextMuted, textAlign = TextAlign.Center)
+                            }
+                            
+                            Spacer(Modifier.height(24.dp))
+                            // Stepper
+                            ApprovalStepper(state = order.state)
                         }
-
-                        // Order lines
-                        item {
-                            GlassCard {
-                                SectionHeader("Order Lines", "${state.lines.size} items")
-                                Spacer(Modifier.height(12.dp))
-                                state.lines.filter { it.displayType == null || it.displayType == "false" }.forEachIndexed { idx, line ->
-                                    if (idx > 0) GoldDivider(Modifier.padding(vertical = 6.dp))
-                                    OrderLineRow(line = line)
+                        
+                        // Items List
+                        LazyColumn(
+                            modifier = Modifier.weight(1f).fillMaxWidth(),
+                            contentPadding = PaddingValues(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            item {
+                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
+                                    Text("Order Items", style = MaterialTheme.typography.titleMedium, color = TextSecondary)
+                                    Text("${state.lines.size} Items", style = MaterialTheme.typography.labelSmall, color = TextMuted)
                                 }
+                                Spacer(Modifier.height(8.dp))
                             }
-                        }
-
-                        // Totals
-                        item {
-                            GlassCard {
-                                AmountDisplay("Subtotal", order.amountUntaxed)
-                                if (order.amountTax > 0) AmountDisplay("VAT (15%)", order.amountTax)
-                                GoldDivider(Modifier.padding(vertical = 6.dp))
-                                AmountDisplay("Total", order.amountTotal, isTotal = true)
+                            
+                            itemsIndexed(state.lines.filter { it.displayType == null || it.displayType == "false" }) { index, line ->
+                                OrderLineCard(index = index + 1, line = line)
                             }
+                            item { Spacer(Modifier.height(80.dp)) } // Padding for bottom actions
                         }
-
-                        // Action message
-                        item {
-                            AnimatedVisibility(visible = state.actionMessage != null) {
-                                Row(
-                                    Modifier.fillMaxWidth().background(StatusGreen.copy(0.12f), RoundedCornerShape(12.dp)).padding(14.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    }
+                    
+                    // Bottom Action Row
+                    Box(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().background(Brush.verticalGradient(listOf(Color.Transparent, BrownDeep.copy(0.8f), BrownDeep))).padding(16.dp)) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                            // Thermal
+                            ActionButton(icon = Icons.Default.Print, label = "Thermal", onClick = { showPrint = true }, modifier = Modifier.weight(0.8f))
+                            // Share
+                            ActionButton(icon = Icons.Default.Share, label = "Share", onClick = { /* TODO */ }, modifier = Modifier.weight(0.8f))
+                            
+                            if (order.state == "draft") {
+                                // Edit
+                                ActionButton(icon = Icons.Default.Edit, label = "Edit", onClick = { /* TODO */ }, modifier = Modifier.weight(0.8f))
+                                // Approve
+                                Button(
+                                    onClick = { viewModel.submitApproval(context, order.id) },
+                                    modifier = Modifier.weight(1f).height(56.dp).shadow(8.dp, RoundedCornerShape(12.dp), ambientColor = StatusGreen, spotColor = StatusGreen),
+                                    colors = ButtonDefaults.buttonColors(containerColor = StatusGreen),
+                                    shape = RoundedCornerShape(12.dp)
                                 ) {
-                                    Icon(Icons.Default.CheckCircle, null, tint = StatusGreen)
-                                    Text(state.actionMessage ?: "", color = StatusGreen, style = MaterialTheme.typography.bodyMedium)
+                                    Icon(Icons.Default.Lock, null, modifier = Modifier.size(18.dp))
+                                    Spacer(Modifier.width(6.dp))
+                                    Text("Approve")
+                                }
+                            } else if (order.state == "waiting_approval") {
+                                Box(modifier = Modifier.weight(1.8f).height(56.dp).background(StatusAmber.copy(0.2f), RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
+                                    Text("Pending Approval", color = StatusAmber, fontWeight = FontWeight.Bold)
+                                }
+                            } else if (order.state == "sale") {
+                                order.invoiceIds?.firstOrNull()?.let { invoiceId ->
+                                    Button(
+                                        onClick = { onInvoiceDetail?.invoke(invoiceId) },
+                                        modifier = Modifier.weight(1.8f).height(56.dp).shadow(8.dp, RoundedCornerShape(12.dp), ambientColor = GoldPrimary, spotColor = GoldPrimary),
+                                        colors = ButtonDefaults.buttonColors(containerColor = GoldPrimary, contentColor = TextOnGold),
+                                        shape = RoundedCornerShape(12.dp)
+                                    ) {
+                                        Icon(Icons.Default.Receipt, null, modifier = Modifier.size(18.dp))
+                                        Spacer(Modifier.width(6.dp))
+                                        Text("View Invoice")
+                                    }
                                 }
                             }
                         }
-
-                        item { Spacer(Modifier.height(20.dp)) }
                     }
                 }
             }
         }
-    }
 
     if (showPrint) {
         val orderName = state.order?.name ?: "Order #$orderId"
@@ -137,79 +165,88 @@ fun OrderDetailScreen(
 }
 
 @Composable
-private fun OrderStatusBanner(order: SaleOrder, viewModel: OrderDetailViewModel, context: android.content.Context, onInvoiceDetail: ((Int) -> Unit)?) {
-    Column(
-        modifier = Modifier.fillMaxWidth()
-            .background(Brush.horizontalGradient(listOf(BrownMedium, BrownCard)), RoundedCornerShape(16.dp))
-            .border(1.dp, GoldDim.copy(0.3f), RoundedCornerShape(16.dp))
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+private fun ActionButton(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .height(56.dp)
+            .background(BrownCard, RoundedCornerShape(12.dp))
+            .border(1.dp, GoldDim.copy(0.4f), RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
     ) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            StatusBadge(order.state)
-            Text("SAR %.2f".format(order.amountTotal), style = MaterialTheme.typography.headlineSmall, color = GoldPrimary, fontWeight = FontWeight.ExtraBold)
-        }
-        // Approval flow steps
-        ApprovalProgressBar(state = order.state)
-        // Action buttons
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            when (order.state) {
-                "draft" -> {
-                    OutlineGoldButton("Submit Approval", onClick = { viewModel.submitApproval(context, order.id) }, modifier = Modifier.weight(1f), icon = Icons.Default.Send)
-                    GoldButton("Confirm", onClick = { viewModel.confirmOrder(context, order.id) }, modifier = Modifier.weight(1f), icon = Icons.Default.CheckCircle)
-                }
-                "waiting_approval" -> {
-                    Box(Modifier.fillMaxWidth().background(StatusAmber.copy(0.12f), RoundedCornerShape(10.dp)).padding(12.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Icon(Icons.Default.HourglassEmpty, null, tint = StatusAmber, modifier = Modifier.size(18.dp))
-                            Text("Waiting for Manager Approval", color = StatusAmber, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-                        }
-                    }
-                }
-                "sale" -> {
-                    order.invoiceIds?.firstOrNull()?.let { invoiceId ->
-                        GoldButton("View Invoice", onClick = { onInvoiceDetail?.invoke(invoiceId) }, icon = Icons.Default.Receipt, modifier = Modifier.fillMaxWidth())
-                    }
-                }
-                "done" -> {}
-            }
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+            Icon(icon, contentDescription = label, tint = GoldPrimary, modifier = Modifier.size(20.dp))
+            Text(label, color = TextPrimary, style = MaterialTheme.typography.labelSmall)
         }
     }
 }
 
 @Composable
-private fun ApprovalProgressBar(state: String) {
-    val steps = listOf("Draft" to "draft", "Approval" to "waiting_approval", "Confirmed" to "sale", "Done" to "done")
+private fun ApprovalStepper(state: String) {
+    val steps = listOf(
+        Triple("Draft", "draft", Icons.Default.ShoppingCart),
+        Triple("Pending", "waiting_approval", Icons.Default.Lock),
+        Triple("Ordered", "sale", Icons.Default.Check)
+    )
     val currentIdx = steps.indexOfFirst { it.second == state }.coerceAtLeast(0)
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-        steps.forEachIndexed { idx, (label, _) ->
+    
+    Row(Modifier.fillMaxWidth().padding(horizontal = 32.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        steps.forEachIndexed { idx, (label, _, icon) ->
             val isDone = idx <= currentIdx
             val isCurrent = idx == currentIdx
-            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
+            
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Box(
-                    Modifier.size(if (isCurrent) 10.dp else 8.dp)
-                        .background(if (isDone) GoldPrimary else GoldDim.copy(0.3f), CircleShape)
-                )
-                Text(label, style = MaterialTheme.typography.labelSmall, color = if (isDone) GoldPrimary else TextMuted, maxLines = 1)
+                    modifier = Modifier
+                        .size(36.dp)
+                        .background(if (isDone) GoldPrimary else BrownCard, CircleShape)
+                        .border(2.dp, if (isDone) GoldPrimary else GoldDim.copy(0.5f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(icon, contentDescription = null, tint = if (isDone) BrownDeep else TextMuted, modifier = Modifier.size(18.dp))
+                }
+                Spacer(Modifier.height(6.dp))
+                Text(label, color = if (isDone) TextPrimary else TextMuted, style = MaterialTheme.typography.labelSmall, fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal)
             }
             if (idx < steps.size - 1) {
-                Box(Modifier.weight(0.5f).height(2.dp).background(if (idx < currentIdx) GoldPrimary else GoldDim.copy(0.3f), RoundedCornerShape(1.dp)))
+                Box(Modifier.weight(1f).height(2.dp).background(if (idx < currentIdx) GoldPrimary else GoldDim.copy(0.5f)))
             }
         }
     }
 }
 
 @Composable
-private fun OrderLineRow(line: SaleOrderLine) {
+private fun OrderLineCard(index: Int, line: SaleOrderLine) {
     val productName = line.productId.toOdooName("Product")
     val uomName = line.uomId.toOdooName("")
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
-        Column(Modifier.weight(1f)) {
-            Text(productName, style = MaterialTheme.typography.bodyMedium, color = TextPrimary, fontWeight = FontWeight.Medium)
-            Text("${line.qty} $uomName × SAR %.2f".format(line.priceUnit) + if ((line.discount ?: 0.0) > 0) " (${line.discount}% off)" else "",
-                style = MaterialTheme.typography.labelSmall, color = TextMuted)
+    val taxAmount = line.priceTotal - line.priceSubtotal
+    
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(BrownCard, RoundedCornerShape(16.dp))
+            .border(1.dp, GoldDim.copy(0.1f), RoundedCornerShape(16.dp))
+            .padding(16.dp)
+    ) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.Top) {
+            Text(index.toString(), color = TextMuted, style = MaterialTheme.typography.bodyMedium)
+            
+            Column(Modifier.weight(1f)) {
+                Text(productName, style = MaterialTheme.typography.bodyMedium, color = TextPrimary, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("${line.qty} Units @ %.2f".format(line.priceUnit), style = MaterialTheme.typography.labelSmall, color = TextSecondary)
+                    if ((line.discount ?: 0.0) > 0) {
+                        Text(" (-${line.discount}%)", style = MaterialTheme.typography.labelSmall, color = StatusRed)
+                    }
+                }
+                if (taxAmount > 0) {
+                    Text("+ Tax: %.2f".format(taxAmount), style = MaterialTheme.typography.labelSmall, color = TextMuted)
+                }
+            }
+            
+            Text("%.2f".format(line.priceTotal), style = MaterialTheme.typography.bodyLarge, color = GoldPrimary, fontWeight = FontWeight.Bold)
         }
-        Text("SAR %.2f".format(line.priceSubtotal), style = MaterialTheme.typography.bodyMedium, color = TextPrimary, fontWeight = FontWeight.SemiBold)
     }
 }
 
