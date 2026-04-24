@@ -16,6 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tts.fieldsales.data.model.SaleOrder
+import com.tts.fieldsales.data.model.toOdooName
 import com.tts.fieldsales.print.ThermalPrintManager
 import com.tts.fieldsales.ui.components.*
 import com.tts.fieldsales.ui.theme.*
@@ -109,8 +110,8 @@ fun OrdersScreen(
 
 @Composable
 private fun OrderCard(order: SaleOrder, onClick: () -> Unit) {
-    val partnerName = (order.partnerId?.getOrNull(1) as? String) ?: "Unknown"
-    val warehouseName = (order.warehouseId?.getOrNull(1) as? String) ?: ""
+    val partnerName = order.partnerId.toOdooName("Unknown")
+    val warehouseName = order.warehouseId.toOdooName("")
 
     GlassCard(onClick = onClick) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {

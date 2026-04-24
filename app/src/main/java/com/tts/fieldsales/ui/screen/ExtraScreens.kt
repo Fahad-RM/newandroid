@@ -60,7 +60,7 @@ fun ReturnsScreen(onBack: () -> Unit) {
                                     Text(ret.name ?: "Draft", color = GoldPrimary, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
                                     StatusBadge(ret.state)
                                 }
-                                Text((ret.partnerId?.getOrNull(1) as? String) ?: "-", color = TextSecondary)
+                                Text(ret.partnerId.toOdooName("-"), color = TextSecondary)
                                 Text(ret.invoiceDate ?: "-", color = TextMuted, style = MaterialTheme.typography.labelSmall)
                             }
                             Column(horizontalAlignment = Alignment.End) {

@@ -65,8 +65,8 @@ fun PaymentsScreen(
 @Composable
 private fun PaymentCard(payment: Payment) {
     var showPrint by remember { mutableStateOf(false) }
-    val partnerName = (payment.partnerId?.getOrNull(1) as? String) ?: "Unknown"
-    val journalName = (payment.journalId?.getOrNull(1) as? String) ?: ""
+    val partnerName = payment.partnerId.toOdooName("Unknown")
+    val journalName = payment.journalId.toOdooName("")
 
     GlassCard {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {

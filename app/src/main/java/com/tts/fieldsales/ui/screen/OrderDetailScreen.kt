@@ -196,8 +196,8 @@ private fun ApprovalProgressBar(state: String) {
 
 @Composable
 private fun OrderLineRow(line: SaleOrderLine) {
-    val productName = (line.productId?.getOrNull(1) as? String) ?: line.name ?: "Product"
-    val uomName = (line.uomId?.getOrNull(1) as? String) ?: ""
+    val productName = line.productId.toOdooName("Product")
+    val uomName = line.uomId.toOdooName("")
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
         Column(Modifier.weight(1f)) {
             Text(productName, style = MaterialTheme.typography.bodyMedium, color = TextPrimary, fontWeight = FontWeight.Medium)
@@ -255,7 +255,7 @@ fun InvoicesScreen(
 
 @Composable
 private fun InvoiceCard(invoice: Invoice, onClick: () -> Unit) {
-    val partnerName = (invoice.partnerId?.getOrNull(1) as? String) ?: "Unknown"
+    val partnerName = invoice.partnerId.toOdooName("Unknown")
     GlassCard(onClick = onClick) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
             Column(Modifier.weight(1f)) {

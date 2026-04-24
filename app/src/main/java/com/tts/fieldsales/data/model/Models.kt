@@ -1,6 +1,27 @@
 package com.tts.fieldsales.data.model
 
+import com.google.gson.JsonElement
 import com.google.gson.annotations.SerializedName
+
+// Helper extensions for Odoo's inconsistent ManyToOne fields (List [id, name] or Boolean false)
+fun JsonElement?.toOdooName(fallback: String = "-"): String {
+    if (this == null || (this.isJsonPrimitive && this.asJsonPrimitive.isBoolean)) return fallback
+    if (this.isJsonArray) {
+        val arr = this.asJsonArray
+        if (arr.size() >= 2) return arr.get(1).asString
+    }
+    return fallback
+}
+
+fun JsonElement?.toOdooId(): Int? {
+    if (this == null || (this.isJsonPrimitive && this.asJsonPrimitive.isBoolean)) return null
+    if (this.isJsonArray) {
+        val arr = this.asJsonArray
+        if (arr.size() >= 1) return arr.get(0).asInt
+    }
+    if (this.isJsonPrimitive && this.asJsonPrimitive.isNumber) return this.asInt
+    return null
+}
 
 // ===================== ODOO JSON-RPC BASE =====================
 data class OdooRequest(
@@ -40,7 +61,7 @@ data class LoginResult(
     val uid: Int?,
     val name: String?,
     val username: String?,
-    @SerializedName("company_id") val companyId: List<Any>?,
+    @SerializedName("company_id") val companyId: JsonElement?,
     @SerializedName("session_id") val sessionId: String?,
     @SerializedName("is_admin") val isAdmin: Boolean?
 )
@@ -84,7 +105,7 @@ data class Partner(
     val credit: Double?,
     @SerializedName("credit_limit") val creditLimit: Double?,
     @SerializedName("image_128") val image128: String?,
-    @SerializedName("property_product_pricelist") val pricelistId: List<Any>?,
+    @SerializedName("property_product_pricelist") val pricelistId: JsonElement?,
     @SerializedName("total_overdue") val totalOverdue: Double?
 )
 
@@ -94,9 +115,9 @@ data class Product(
     val name: String,
     @SerializedName("list_price") val listPrice: Double,
     @SerializedName("standard_price") val costPrice: Double?,
-    @SerializedName("uom_id") val uomId: List<Any>?,
-    @SerializedName("uom_po_id") val uomPoId: List<Any>?,
-    @SerializedName("categ_id") val categId: List<Any>?,
+    @SerializedName("uom_id") val uomId: JsonElement?,
+    @SerializedName("uom_po_id") val uomPoId: JsonElement?,
+    @SerializedName("categ_id") val categId: JsonElement?,
     @SerializedName("default_code") val defaultCode: String?,
     @SerializedName("image_128") val image128: String?,
     @SerializedName("qty_available") val qtyAvailable: Double?,
@@ -117,8 +138,8 @@ data class SaleOrder(
     val name: String,
     val state: String,
     @SerializedName("date_order") val dateOrder: String?,
-    @SerializedName("partner_id") val partnerId: List<Any>?,
-    @SerializedName("user_id") val userId: List<Any>?,
+    @SerializedName("partner_id") val partnerId: JsonElement?,
+    @SerializedName("user_id") val userId: JsonElement?,
     @SerializedName("amount_untaxed") val amountUntaxed: Double,
     @SerializedName("amount_tax") val amountTax: Double,
     @SerializedName("amount_total") val amountTotal: Double,
@@ -126,17 +147,17 @@ data class SaleOrder(
     @SerializedName("invoice_ids") val invoiceIds: List<Int>?,
     @SerializedName("invoice_status") val invoiceStatus: String?,
     @SerializedName("note") val note: String?,
-    @SerializedName("warehouse_id") val warehouseId: List<Any>?,
-    @SerializedName("company_id") val companyId: List<Any>?
+    @SerializedName("warehouse_id") val warehouseId: JsonElement?,
+    @SerializedName("company_id") val companyId: JsonElement?
 )
 
 data class SaleOrderLine(
     val id: Int,
-    @SerializedName("order_id") val orderId: List<Any>?,
-    @SerializedName("product_id") val productId: List<Any>?,
+    @SerializedName("order_id") val orderId: JsonElement?,
+    @SerializedName("product_id") val productId: JsonElement?,
     val name: String?,
     @SerializedName("product_uom_qty") val qty: Double,
-    @SerializedName("product_uom") val uomId: List<Any>?,
+    @SerializedName("product_uom") val uomId: JsonElement?,
     @SerializedName("price_unit") val priceUnit: Double,
     val discount: Double?,
     @SerializedName("price_subtotal") val priceSubtotal: Double,
@@ -151,7 +172,7 @@ data class Invoice(
     val name: String?,
     @SerializedName("move_type") val moveType: String,
     val state: String,
-    @SerializedName("partner_id") val partnerId: List<Any>?,
+    @SerializedName("partner_id") val partnerId: JsonElement?,
     @SerializedName("invoice_date") val invoiceDate: String?,
     @SerializedName("invoice_date_due") val invoiceDateDue: String?,
     @SerializedName("amount_untaxed") val amountUntaxed: Double,
@@ -162,20 +183,20 @@ data class Invoice(
     @SerializedName("ref") val ref: String?,
     @SerializedName("invoice_line_ids") val lineIds: List<Int>?,
     @SerializedName("payment_state") val paymentState: String?,
-    @SerializedName("company_id") val companyId: List<Any>?,
+    @SerializedName("company_id") val companyId: JsonElement?,
     @SerializedName("field_sales_ref") val fieldSalesRef: String?
 )
 
 data class InvoiceLine(
     val id: Int,
-    @SerializedName("product_id") val productId: List<Any>?,
+    @SerializedName("product_id") val productId: JsonElement?,
     val name: String?,
     val quantity: Double,
     @SerializedName("price_unit") val priceUnit: Double,
     @SerializedName("price_subtotal") val priceSubtotal: Double,
     @SerializedName("price_total") val priceTotal: Double,
     val discount: Double?,
-    @SerializedName("product_uom_id") val uomId: List<Any>?,
+    @SerializedName("product_uom_id") val uomId: JsonElement?,
     @SerializedName("tax_ids") val taxIds: List<Int>?,
     @SerializedName("display_type") val displayType: String?
 )
@@ -184,16 +205,16 @@ data class InvoiceLine(
 data class Payment(
     val id: Int,
     val name: String?,
-    @SerializedName("partner_id") val partnerId: List<Any>?,
+    @SerializedName("partner_id") val partnerId: JsonElement?,
     val amount: Double,
     val date: String?,
-    @SerializedName("journal_id") val journalId: List<Any>?,
+    @SerializedName("journal_id") val journalId: JsonElement?,
     val state: String,
     @SerializedName("field_sales_status") val fieldSalesStatus: String?,
     @SerializedName("field_sales_ref") val fieldSalesRef: String?,
-    @SerializedName("create_uid") val createUid: List<Any>?,
-    @SerializedName("company_id") val companyId: List<Any>?,
-    @SerializedName("currency_id") val currencyId: List<Any>?
+    @SerializedName("create_uid") val createUid: JsonElement?,
+    @SerializedName("company_id") val companyId: JsonElement?,
+    @SerializedName("currency_id") val currencyId: JsonElement?
 )
 
 data class Journal(
@@ -207,8 +228,8 @@ data class Journal(
 data class Visit(
     val id: Int,
     val name: String,
-    @SerializedName("partner_id") val partnerId: List<Any>?,
-    @SerializedName("user_id") val userId: List<Any>?,
+    @SerializedName("partner_id") val partnerId: JsonElement?,
+    @SerializedName("user_id") val userId: JsonElement?,
     @SerializedName("date_planned") val datePlanned: String?,
     val state: String,
     @SerializedName("visit_type") val visitType: String?,
@@ -219,7 +240,7 @@ data class Visit(
     @SerializedName("checkin_longitude") val checkinLng: Double?,
     @SerializedName("actual_duration") val actualDuration: Double?,
     @SerializedName("allow_remote_checkin") val allowRemoteCheckin: Boolean?,
-    @SerializedName("daily_route_id") val dailyRouteId: List<Any>?
+    @SerializedName("daily_route_id") val dailyRouteId: JsonElement?
 )
 
 data class VisitData(

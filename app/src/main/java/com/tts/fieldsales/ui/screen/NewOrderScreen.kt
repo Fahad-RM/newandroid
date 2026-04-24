@@ -188,8 +188,8 @@ fun NewOrderScreen(onBack: () -> Unit, onOrderCreated: (Int) -> Unit) {
             search = productSearch,
             onSearchChange = { productSearch = it },
             onSelect = { product ->
-                val uomId = (product.uomId?.getOrNull(0) as? Double)?.toInt() ?: 1
-                val uomName = (product.uomId?.getOrNull(1) as? String) ?: "Unit"
+                val uomId = product.uomId.toOdooId() ?: 1
+                val uomName = product.uomId.toOdooName("Unit")
                 val existingIdx = cartItems.indexOfFirst { it.productId == product.id }
                 cartItems = if (existingIdx >= 0) {
                     cartItems.toMutableList().also { it[existingIdx] = it[existingIdx].copy(qty = it[existingIdx].qty + 1) }

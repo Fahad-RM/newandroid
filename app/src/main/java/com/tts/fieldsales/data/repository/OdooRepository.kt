@@ -387,14 +387,31 @@ class OdooRepository(private val prefs: AppPreferences) {
     // ─── PRINT ───────────────────────────────────────────────────────────────────
 
     suspend fun getReportHtml(reportName: String, resId: Int): Result<String> = runCatching {
-        val url = prefs.getOdooUrl().trimEnd('/') + "/field_sales/get_report_html"
-        val body = OdooClient.buildAuthBody(
-            mapOf("report_name" to reportName, "res_id" to resId)
-        )
-        val response = OdooClient.getService().call(url, body)
-        if (!response.isSuccessful) throw Exception("HTTP ${response.code()}")
+        val odooUrl = prefs.getOdooUrl().trimEnd('/')
         
-        val odooRes = response.body() ?: throw Exception("No response")
+        // 1. Try custom endpoint first
+        try {
+            val customUrl = "$odooUrl/field_sales/get_report_html"
+            val body = OdooClient.buildAuthBody(mapOf("report_name" to reportName, "res_id" to resId))
+            val response = OdooClient.getService().call(customUrl, body)
+            if (response.isSuccessful && response.body()?.result != null) {
+                val result = response.body()!!.result!!
+                if (result.isJsonObject) {
+                    val obj = result.asJsonObject
+                    if (obj.has("html")) return@runCatching obj.get("html").asString
+                    if (obj.has("error")) throw Exception(obj.get("error").asString)
+                }
+            }
+        } catch (e: Exception) {
+            // Ignore and fall through to standard method
+        }
+
+        // 2. Fallback: Standard Odoo RPC call to render report
+        val rpcBody = buildRpc("render_report", "ir.actions.report", args = listOf(reportName, listOf(resId), mapOf("report_type" to "html")))
+        val rpcResponse = OdooClient.getService().call("$odooUrl/web/dataset/call_kw", rpcBody)
+        if (!rpcResponse.isSuccessful) throw Exception("HTTP ${rpcResponse.code()}")
+        
+        val odooRes = rpcResponse.body() ?: throw Exception("No response")
         if (odooRes.error != null) throw Exception(odooRes.error.data?.message ?: odooRes.error.message ?: "RPC Error")
         
         val result = odooRes.result ?: throw Exception("Empty result")
