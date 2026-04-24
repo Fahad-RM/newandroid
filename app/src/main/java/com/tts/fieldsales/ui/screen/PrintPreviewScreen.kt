@@ -31,6 +31,7 @@ import kotlinx.coroutines.withContext
 enum class PreviewState { LOADING, SUCCESS, ERROR }
 
 @SuppressLint("SetJavaScriptEnabled")
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PrintPreviewScreen(
     reportName: String,
@@ -112,6 +113,7 @@ fun PrintPreviewScreen(
         }
     }
 
+@OptIn(ExperimentalMaterial3Api::class)
     Scaffold(
         containerColor = BrownDarkest,
         topBar = {

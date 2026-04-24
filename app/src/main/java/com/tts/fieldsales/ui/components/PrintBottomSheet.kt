@@ -25,7 +25,7 @@ import androidx.compose.ui.unit.*
 import androidx.core.content.ContextCompat
 import com.tts.fieldsales.data.prefs.AppPreferences
 import com.tts.fieldsales.data.repository.OdooRepository
-import com.tts.fieldsales.print.BluetoothPrinterManager
+import com.tts.fieldsales.print.ThermalPrintManager
 import com.tts.fieldsales.ui.theme.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -259,11 +259,9 @@ fun PrintBottomSheet(
                                             val repo = OdooRepository(prefs)
                                             repo.getReportHtml(reportName, recordId).fold(
                                                 onSuccess = { html ->
-                                                    val btPrinter = BluetoothPrinterManager(context)
-                                                    btPrinter.printHtml(device, html, prefs.getPaperWidth()).fold(
-                                                        onSuccess = { status = "✓ Printed to ${device.name}!" },
-                                                        onFailure = { e -> status = "Failed: ${e.message}" }
-                                                    )
+                                                    val paperWidth = prefs.getPaperWidth()
+                                                    ThermalPrintManager.printHtmlToBluetooth(context, html, paperWidth, recordName)
+                                                    status = "✓ Sent to ${device.name}!"
                                                 },
                                                 onFailure = { e ->
                                                     status = "Template error: ${e.message}"
