@@ -64,30 +64,27 @@ object OdooClient {
         cookieJar.clear()
     }
 
-    fun buildJsonRpcBody(method: String, model: String, args: List<Any> = emptyList(), kwargs: Map<String, Any> = emptyMap()): Map<String, Any> {
-        return mapOf(
-            "jsonrpc" to "2.0",
-            "method" to "call",
-            "id" to System.currentTimeMillis().toInt(),
-            "params" to mapOf(
-                "model" to model,
-                "method" to method,
-                "args" to args,
-                "kwargs" to kwargs
-            )
+    /**
+     * Builds a typed JsonRpcBody for call_kw endpoints.
+     * Using JsonRpcBody avoids the Retrofit Map<String, Any> wildcard error.
+     */
+    fun buildJsonRpcBody(
+        method: String,
+        model: String,
+        args: List<@JvmSuppressWildcards Any> = emptyList(),
+        kwargs: Map<String, @JvmSuppressWildcards Any> = emptyMap()
+    ): JsonRpcBody = JsonRpcBody(
+        params = mapOf(
+            "model" to model,
+            "method" to method,
+            "args" to args,
+            "kwargs" to kwargs
         )
-    }
+    )
 
-    fun buildCallBody(service: String, method: String, args: List<Any> = emptyList()): Map<String, Any> {
-        return mapOf(
-            "jsonrpc" to "2.0",
-            "method" to "call",
-            "id" to System.currentTimeMillis().toInt(),
-            "params" to mapOf(
-                "service" to service,
-                "method" to method,
-                "args" to args
-            )
-        )
-    }
+    /**
+     * Builds a typed JsonRpcBody for authenticate / other top-level endpoints.
+     */
+    fun buildAuthBody(params: Map<String, @JvmSuppressWildcards Any>): JsonRpcBody =
+        JsonRpcBody(params = params)
 }

@@ -46,24 +46,19 @@ class OdooRepository(private val prefs: AppPreferences) {
 
     suspend fun login(url: String, db: String, username: String, password: String): Result<Int> = runCatching {
         OdooClient.initialize(url)
-        val body = OdooClient.buildCallBody("common", "login", listOf(db, username, password))
-        val loginUrl = url.trimEnd('/') + "/web/dataset/call"
-        // Use authenticate endpoint
         val authUrl = url.trimEnd('/') + "/web/session/authenticate"
-        val authBody = mapOf(
-            "jsonrpc" to "2.0",
-            "method" to "call",
-            "id" to 1,
-            "params" to mapOf(
+        val body = OdooClient.buildAuthBody(
+            mapOf(
                 "db" to db,
                 "login" to username,
                 "password" to password
             )
         )
-        val response = OdooClient.getService().call(authUrl, authBody)
-        val result = response.body()?.result ?: throw Exception("Login failed")
-        val obj = gson.fromJson(result, JsonElement::class.java).asJsonObject
-        val uid = obj.get("uid")?.asInt ?: throw Exception("Invalid credentials")
+        val response = OdooClient.getService().call(authUrl, body)
+        val result = response.body()?.result ?: throw Exception("Login failed — no response from server")
+        val obj = gson.fromJson(result, com.google.gson.JsonElement::class.java).asJsonObject
+        val uid = obj.get("uid")?.let { if (!it.isJsonNull) it.asInt else null }
+            ?: throw Exception("Invalid credentials. Please check your username and password.")
         val name = obj.get("name")?.asString ?: username
         prefs.saveLoginInfo(url, db, username, password, uid, name)
         uid
@@ -393,11 +388,8 @@ class OdooRepository(private val prefs: AppPreferences) {
 
     suspend fun getReportHtml(reportName: String, resId: Int): Result<String> = runCatching {
         val url = prefs.getOdooUrl().trimEnd('/') + "/field_sales/get_report_html"
-        val body = mapOf(
-            "jsonrpc" to "2.0",
-            "method" to "call",
-            "id" to 1,
-            "params" to mapOf("report_name" to reportName, "res_id" to resId)
+        val body = OdooClient.buildAuthBody(
+            mapOf("report_name" to reportName, "res_id" to resId)
         )
         val response = OdooClient.getService().call(url, body)
         val result = response.body()?.result ?: throw Exception("Report failed")
