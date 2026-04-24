@@ -221,7 +221,7 @@ data class Journal(
     val id: Int,
     val name: String,
     val type: String?,
-    @SerializedName("company_id") val companyId: List<Any>?
+    @SerializedName("company_id") val companyId: JsonElement?
 )
 
 // ===================== VISIT =====================
@@ -285,15 +285,15 @@ data class DailyRoute(
 data class Expense(
     val id: Int,
     val name: String,
-    @SerializedName("employee_id") val employeeId: List<Any>?,
-    @SerializedName("product_id") val productId: List<Any>?,
+    @SerializedName("employee_id") val employeeId: JsonElement?,
+    @SerializedName("product_id") val productId: JsonElement?,
     @SerializedName("unit_amount") val unitAmount: Double,
     val quantity: Double,
     @SerializedName("total_amount") val totalAmount: Double?,
     val date: String?,
     val state: String,
     val description: String?,
-    @SerializedName("company_id") val companyId: List<Any>?
+    @SerializedName("company_id") val companyId: JsonElement?
 )
 
 // ===================== DASHBOARD =====================
