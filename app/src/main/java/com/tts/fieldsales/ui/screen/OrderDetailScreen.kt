@@ -10,9 +10,11 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.*
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tts.fieldsales.data.model.*
@@ -46,8 +48,7 @@ fun OrderDetailScreen(
 
     AppScaffold(
         title = "",
-        onBack = onBack,
-        containerColor = BrownDeep
+        onBack = onBack
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding).background(Brush.verticalGradient(listOf(BrownDark, BrownDarkest)))) {
             if (state.isLoading) {
@@ -149,6 +150,7 @@ fun OrderDetailScreen(
                 }
             }
         }
+    }
 
     if (showPrint) {
         val orderName = state.order?.name ?: "Order #$orderId"

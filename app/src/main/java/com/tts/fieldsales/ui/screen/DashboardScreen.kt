@@ -13,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.*
 import androidx.compose.ui.geometry.*
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -105,7 +106,6 @@ fun DashboardScreen(
                             }
                         }
                     }
-                }
             }
 
             // ─── PERFORMANCE CARD ────────────────────────────────
@@ -166,13 +166,12 @@ fun DashboardScreen(
                     modifier = Modifier.padding(horizontal = 16.dp).padding(bottom = 12.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    rowModules.forEach { module ->
+                    for (module in rowModules) {
                         DashboardModuleCard(
                             module = module,
                             onClick = { onNavigate(module.route) },
                             modifier = Modifier.weight(1f)
                         )
-                    }
                     }
                     if (rowModules.size < 3) {
                         for (i in 0 until (3 - rowModules.size)) {

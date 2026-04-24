@@ -376,10 +376,11 @@ fun AppScaffold(
     onBack: (() -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit = {},
     floatingActionButton: @Composable () -> Unit = {},
+    containerColor: Color = BrownDarkest,
     content: @Composable (PaddingValues) -> Unit
 ) {
     Scaffold(
-        containerColor = BrownDarkest,
+        containerColor = containerColor,
         topBar = {
             TopAppBar(
                 title = {
