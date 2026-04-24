@@ -1,11 +1,48 @@
 package com.tts.fieldsales.data.api
 
-import com.google.gson.GsonBuilder
+import com.google.gson.*
 import okhttp3.*
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.lang.reflect.Type
 import java.util.concurrent.TimeUnit
+
+/** 
+ * Odoo often returns 'false' when a field is empty, even if it's expected to be a List.
+ * This deserializer converts 'false' to null to avoid GSON BEGIN_ARRAY errors.
+ */
+class OdooListDeserializer : JsonDeserializer<List<Any>?> {
+    override fun deserialize(json: JsonElement, typeOfT: Type, context: JsonDeserializationContext): List<Any>? {
+        // Odoo returns boolean 'false' for empty/null fields
+        if (json.isJsonPrimitive && json.asJsonPrimitive.isBoolean) {
+            return null
+        }
+        if (!json.isJsonArray) return null
+        
+        return try {
+            val arr = json.asJsonArray
+            val list = mutableListOf<Any>()
+            for (element in arr) {
+                when {
+                    element.isJsonPrimitive -> {
+                        val p = element.asJsonPrimitive
+                        when {
+                            p.isNumber -> list.add(p.asDouble)
+                            p.isBoolean -> list.add(p.asBoolean)
+                            else -> list.add(p.asString)
+                        }
+                    }
+                    element.isJsonArray -> list.add(context.deserialize<List<Any>>(element, List::class.java))
+                    else -> list.add(element)
+                }
+            }
+            list
+        } catch (e: Exception) {
+            null
+        }
+    }
+}
 
 /** Simple in-memory cookie jar — persists session cookies across requests */
 private class InMemoryCookieJar : CookieJar {
@@ -26,6 +63,7 @@ object OdooClient {
     private val cookieJar = InMemoryCookieJar()
 
     private val gson = GsonBuilder()
+        .registerTypeAdapter(List::class.java, OdooListDeserializer())
         .setLenient()
         .serializeNulls()
         .create()

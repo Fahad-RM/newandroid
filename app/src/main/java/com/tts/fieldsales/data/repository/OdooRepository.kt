@@ -392,9 +392,18 @@ class OdooRepository(private val prefs: AppPreferences) {
             mapOf("report_name" to reportName, "res_id" to resId)
         )
         val response = OdooClient.getService().call(url, body)
-        val result = response.body()?.result ?: throw Exception("Report failed")
-        val obj = gson.fromJson(result, com.google.gson.JsonObject::class.java)
-        obj.get("html")?.asString ?: throw Exception(obj.get("error")?.asString ?: "Empty HTML")
+        if (!response.isSuccessful) throw Exception("HTTP ${response.code()}")
+        
+        val odooRes = response.body() ?: throw Exception("No response")
+        if (odooRes.error != null) throw Exception(odooRes.error.data?.message ?: odooRes.error.message ?: "RPC Error")
+        
+        val result = odooRes.result ?: throw Exception("Empty result")
+        if (result.isJsonObject) {
+            val obj = result.asJsonObject
+            if (obj.has("html")) return@runCatching obj.get("html").asString
+            if (obj.has("error")) throw Exception(obj.get("error").asString)
+        }
+        result.asString
     }
 
     // ─── EXPENSES ────────────────────────────────────────────────────────────────

@@ -67,7 +67,7 @@ fun PrintPreviewScreen(
                     // Fallback: generate a local preview template
                     htmlContent = generateFallbackHtml(reportName, recordId, recordName, e.message)
                     previewStatus = PreviewStatus.SUCCESS
-                    errorMsg = "Server unreachable. Showing draft layout."
+                    errorMsg = e.message ?: "Connection failed"
                 }
             )
         }
