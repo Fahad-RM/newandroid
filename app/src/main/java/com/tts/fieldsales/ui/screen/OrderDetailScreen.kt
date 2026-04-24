@@ -64,7 +64,7 @@ fun OrderDetailScreen(
                     LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                         // Status banner
                         item {
-                            OrderStatusBanner(order = order, viewModel = viewModel, context = context)
+                            OrderStatusBanner(order = order, viewModel = viewModel, context = context, onInvoiceDetail = onInvoiceDetail)
                         }
 
                         // Info card
@@ -137,7 +137,7 @@ fun OrderDetailScreen(
 }
 
 @Composable
-private fun OrderStatusBanner(order: SaleOrder, viewModel: OrderDetailViewModel, context: android.content.Context) {
+private fun OrderStatusBanner(order: SaleOrder, viewModel: OrderDetailViewModel, context: android.content.Context, onInvoiceDetail: ((Int) -> Unit)?) {
     Column(
         modifier = Modifier.fillMaxWidth()
             .background(Brush.horizontalGradient(listOf(BrownMedium, BrownCard)), RoundedCornerShape(16.dp))
