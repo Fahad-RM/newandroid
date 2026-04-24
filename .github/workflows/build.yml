@@ -1,15 +1,15 @@
-name: Build Debug APK
+name: Build APK
 
 on:
   push:
     branches: [ main, master, develop ]
   pull_request:
     branches: [ main, master ]
-  workflow_dispatch:    # Allow manual trigger
+  workflow_dispatch:
 
 jobs:
   build:
-    name: Build APK
+    name: Build Debug & Release APK
     runs-on: ubuntu-latest
 
     steps:
@@ -21,10 +21,6 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: gradle
-
-      - name: Grant execute permission to gradlew
-        run: chmod +x gradlew
 
       - name: Cache Gradle packages
         uses: actions/cache@v4
@@ -32,26 +28,72 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/libs.versions.toml') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
 
+      - name: Download Gradle Wrapper JAR (if missing)
+        run: |
+          WRAPPER_JAR="gradle/wrapper/gradle-wrapper.jar"
+          if [ ! -f "$WRAPPER_JAR" ]; then
+            echo "Downloading gradle-wrapper.jar..."
+            mkdir -p gradle/wrapper
+            curl -fsSL "https://github.com/gradle/gradle/raw/v8.7.0/gradle/wrapper/gradle-wrapper.jar" \
+              -o "$WRAPPER_JAR" || \
+            curl -fsSL "https://raw.githubusercontent.com/gradle/gradle/v8.7.0/gradle/wrapper/gradle-wrapper.jar" \
+              -o "$WRAPPER_JAR"
+            echo "Downloaded wrapper JAR"
+          else
+            echo "Wrapper JAR already present"
+          fi
+
+      - name: Make gradlew executable
+        run: |
+          if [ -f "gradlew" ]; then
+            chmod +x gradlew
+            echo "gradlew is ready"
+          else
+            echo "gradlew not found — this should not happen"
+            exit 1
+          fi
+
+      - name: Validate Gradle wrapper
+        run: ./gradlew --version
+
       - name: Build Debug APK
-        run: ./gradlew assembleDebug --stacktrace
+        run: ./gradlew assembleDebug --stacktrace --no-daemon
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: TTS-FieldSales-Debug-APK
+          name: TTS-FieldSales-Debug-${{ github.run_number }}
           path: app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
 
       - name: Build Release APK (unsigned)
-        run: ./gradlew assembleRelease --stacktrace
+        run: ./gradlew assembleRelease --stacktrace --no-daemon
 
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
         with:
-          name: TTS-FieldSales-Release-APK
+          name: TTS-FieldSales-Release-${{ github.run_number }}
           path: app/build/outputs/apk/release/app-release.apk
           retention-days: 30
+
+      - name: Build Summary
+        if: always()
+        run: |
+          echo "## Build Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          APK_DEBUG="app/build/outputs/apk/debug/app-debug.apk"
+          APK_RELEASE="app/build/outputs/apk/release/app-release.apk"
+          if [ -f "$APK_DEBUG" ]; then
+            SIZE=$(du -sh "$APK_DEBUG" | cut -f1)
+            echo "✅ **Debug APK**: $SIZE" >> $GITHUB_STEP_SUMMARY
+          fi
+          if [ -f "$APK_RELEASE" ]; then
+            SIZE=$(du -sh "$APK_RELEASE" | cut -f1)
+            echo "✅ **Release APK**: $SIZE" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📥 Download from the **Artifacts** section above." >> $GITHUB_STEP_SUMMARY
