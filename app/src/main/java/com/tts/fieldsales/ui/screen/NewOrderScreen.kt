@@ -66,7 +66,9 @@ fun NewOrderScreen(onBack: () -> Unit, onOrderCreated: (Int) -> Unit) {
                 selectedWarehouseName = wh["name"] as? String ?: ""
             }
         }
-        repo.getProducts().onSuccess { products = it }
+        repo.getProducts()
+            .onSuccess { products = it }
+            .onFailure { errorMsg = "Products: ${it.message}" }
     }
 
     val subtotal = cartItems.sumOf { it.subtotal }

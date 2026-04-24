@@ -28,6 +28,7 @@ fun OrderDetailScreen(
     orderId: Int,
     onBack: () -> Unit,
     onPreview: ((reportName: String, recordId: Int, recordName: String) -> Unit)? = null,
+    onInvoiceDetail: ((Int) -> Unit)? = null,
     viewModel: OrderDetailViewModel = viewModel()
 ) {
     val context = LocalContext.current
@@ -83,7 +84,7 @@ fun OrderDetailScreen(
                             GlassCard {
                                 SectionHeader("Order Lines", "${state.lines.size} items")
                                 Spacer(Modifier.height(12.dp))
-                                state.lines.filter { it.displayType == null }.forEachIndexed { idx, line ->
+                                state.lines.filter { it.displayType == null || it.displayType == "false" }.forEachIndexed { idx, line ->
                                     if (idx > 0) GoldDivider(Modifier.padding(vertical = 6.dp))
                                     OrderLineRow(line = line)
                                 }
@@ -165,7 +166,11 @@ private fun OrderStatusBanner(order: SaleOrder, viewModel: OrderDetailViewModel,
                         }
                     }
                 }
-                "sale" -> GoldButton("Create Invoice", onClick = { viewModel.createInvoice(context, order.id) }, icon = Icons.Default.Receipt, modifier = Modifier.fillMaxWidth())
+                "sale" -> {
+                    if (!order.invoiceIds.isNullOrEmpty()) {
+                        GoldButton("View Invoice", onClick = { onInvoiceDetail?.invoke(order.invoiceIds.first()) }, icon = Icons.Default.Receipt, modifier = Modifier.fillMaxWidth())
+                    }
+                }
                 "done" -> {}
             }
         }

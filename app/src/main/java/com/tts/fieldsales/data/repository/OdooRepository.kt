@@ -73,7 +73,7 @@ class OdooRepository(private val prefs: AppPreferences) {
                 "field_sales_can_see_customers","field_sales_can_see_orders","field_sales_can_see_invoices",
                 "field_sales_can_see_returns","field_sales_can_see_payments","field_sales_can_see_visits",
                 "field_sales_can_see_expenses","field_sales_can_see_closing","field_sales_can_see_routes",
-                "field_sales_allowed_warehouse_ids","field_sales_allowed_journal_ids","field_sales_daily_goal"),
+                "field_sales_allowed_warehouse_ids","field_sales_allowed_journal_ids","field_sales_allowed_brand_ids","field_sales_daily_goal"),
             "limit" to 1
         ))
         val response = OdooClient.getService().call(url, body)
@@ -304,8 +304,12 @@ class OdooRepository(private val prefs: AppPreferences) {
     // ─── PRODUCTS ────────────────────────────────────────────────────────────────
 
     suspend fun getProducts(search: String = "", warehouseId: Int? = null): Result<List<Product>> = runCatching {
+        val userRes = getUserDetails().getOrNull()
         val domain = mutableListOf<Any>(listOf("sale_ok", "=", true), listOf("active", "=", true))
         if (search.isNotBlank()) domain.add(listOf("name", "ilike", search))
+        if (userRes != null && userRes.globalAccess != true && !userRes.allowedBrandIds.isNullOrEmpty()) {
+            domain.add(listOf("brand_id", "in", userRes.allowedBrandIds))
+        }
         val url = prefs.getOdooUrl().trimEnd('/') + "/web/dataset/call_kw/product.product/search_read"
         val body = buildRpc("search_read", "product.product", kwargs = mapOf(
             "domain" to domain,
@@ -320,8 +324,14 @@ class OdooRepository(private val prefs: AppPreferences) {
     }
 
     suspend fun getWarehouses(): Result<List<Map<String, Any>>> = runCatching {
+        val userRes = getUserDetails().getOrNull()
+        val domain = mutableListOf<Any>()
+        if (userRes != null && userRes.globalAccess != true && !userRes.allowedWarehouseIds.isNullOrEmpty()) {
+            domain.add(listOf("id", "in", userRes.allowedWarehouseIds))
+        }
         val url = prefs.getOdooUrl().trimEnd('/') + "/web/dataset/call_kw/stock.warehouse/search_read"
         val body = buildRpc("search_read", "stock.warehouse", kwargs = mapOf(
+            "domain" to domain,
             "fields" to listOf("name","code"),
             "order" to "name asc"
         ))

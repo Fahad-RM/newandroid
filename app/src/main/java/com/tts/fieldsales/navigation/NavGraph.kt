@@ -52,6 +52,9 @@ fun AppNavGraph(navController: NavHostController) {
                 onBack = { navController.popBackStack() },
                 onPreview = { reportName, recordId, recordName ->
                     navController.navigate(Screen.PrintPreview.createRoute(reportName, recordId, recordName))
+                },
+                onInvoiceDetail = { invoiceId ->
+                    navController.navigate(Screen.InvoiceDetail.createRoute(invoiceId))
                 }
             )
         }

@@ -84,6 +84,7 @@ data class UserDetails(
     @SerializedName("field_sales_can_see_routes") val canSeeRoutes: Boolean?,
     @SerializedName("field_sales_allowed_warehouse_ids") val allowedWarehouseIds: List<Int>?,
     @SerializedName("field_sales_allowed_journal_ids") val allowedJournalIds: List<Int>?,
+    @SerializedName("field_sales_allowed_brand_ids") val allowedBrandIds: List<Int>?,
     @SerializedName("field_sales_daily_goal") val dailyGoal: Double?
 )
 
