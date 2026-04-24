@@ -290,12 +290,27 @@ fun InvoiceDetailScreen(
     var invoice by remember { mutableStateOf<Invoice?>(null) }
     var lines by remember { mutableStateOf<List<InvoiceLine>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
+    var isLoadingLines by remember { mutableStateOf(true) }
     var showPrint by remember { mutableStateOf(false) }
+    var linesError by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(invoiceId) {
-        repo.getInvoices().onSuccess { list -> invoice = list.firstOrNull { it.id == invoiceId } }
-        repo.getInvoiceLines(invoiceId).onSuccess { lines = it }
-        isLoading = false
+        isLoading = true
+        repo.getInvoices().onSuccess { list ->
+            invoice = list.firstOrNull { it.id == invoiceId }
+            isLoading = false
+        }.onFailure { e ->
+            isLoading = false
+        }
+        isLoadingLines = true
+        repo.getInvoiceLines(invoiceId).onSuccess { linesList ->
+            lines = linesList
+            linesError = null
+            isLoadingLines = false
+        }.onFailure { e ->
+            linesError = e.message
+            isLoadingLines = false
+        }
     }
 
     AppScaffold(title = invoice?.name ?: "Invoice", onBack = onBack,
@@ -326,15 +341,30 @@ fun InvoiceDetailScreen(
                         GlassCard {
                             Text("Line Items", style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.Bold)
                             Spacer(Modifier.height(10.dp))
-                            lines.forEachIndexed { idx, line ->
-                                if (idx > 0) GoldDivider(Modifier.padding(vertical = 4.dp))
-                                val name = (line.productId?.getOrNull(1) as? String) ?: line.name ?: "-"
-                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                    Column(Modifier.weight(1f)) {
-                                        Text(name, color = TextPrimary, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
-                                        Text("${line.quantity} × %.2f".format(line.priceUnit), color = TextMuted, style = MaterialTheme.typography.labelSmall)
+                            when {
+                                isLoadingLines -> {
+                                    repeat(3) {
+                                        ShimmerBox(Modifier.fillMaxWidth().height(50.dp).padding(vertical = 4.dp))
                                     }
-                                    Text("SAR %.2f".format(line.priceSubtotal), color = TextPrimary, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)
+                                }
+                                linesError != null -> {
+                                    Text("Error loading lines: $linesError", color = StatusRed, style = MaterialTheme.typography.bodySmall)
+                                }
+                                lines.isEmpty() -> {
+                                    Text("No line items found", color = TextMuted, style = MaterialTheme.typography.bodyMedium)
+                                }
+                                else -> {
+                                    lines.forEachIndexed { idx, line ->
+                                        if (idx > 0) GoldDivider(Modifier.padding(vertical = 4.dp))
+                                        val name = (line.productId?.getOrNull(1) as? String) ?: line.name ?: "-"
+                                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                            Column(Modifier.weight(1f)) {
+                                                Text(name, color = TextPrimary, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                                                Text("${line.quantity} × %.2f".format(line.priceUnit), color = TextMuted, style = MaterialTheme.typography.labelSmall)
+                                            }
+                                            Text("SAR %.2f".format(line.priceSubtotal), color = TextPrimary, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)
+                                        }
+                                    }
                                 }
                             }
                         }

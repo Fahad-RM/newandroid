@@ -39,37 +39,39 @@ object ThermalPrintManager {
         paperWidthMm: Int = 58,
         jobName: String = "TTS Field Sales"
     ) {
-        val webView = WebView(context)
-        webView.settings.apply {
-            javaScriptEnabled = true
-            loadWithOverviewMode = true
-            useWideViewPort = false
-            setSupportZoom(false)
-        }
-
-        // Inject CSS to match thermal printer paper width
-        val widthPx = if (paperWidthMm == 80) "302px" else "220px" // approx 80mm and 58mm at 96dpi
-        val styledHtml = """
-            <html><head>
-            <meta charset="UTF-8">
-            <style>
-                @page { margin: 2mm; size: ${paperWidthMm}mm auto; }
-                body { width: ${widthPx}; margin: 0; padding: 0; font-family: Arial, sans-serif; font-size: 8px; color: #000; }
-                * { box-sizing: border-box; }
-                img { max-width: 100%; }
-                table { width: 100%; border-collapse: collapse; }
-            </style>
-            </head><body>
-            $html
-            </body></html>
-        """.trimIndent()
-
-        webView.webViewClient = object : WebViewClient() {
-            override fun onPageFinished(view: WebView, url: String) {
-                createPrintJob(context, view, jobName, paperWidthMm)
+        android.os.Handler(android.os.Looper.getMainLooper()).post {
+            val webView = WebView(context)
+            webView.settings.apply {
+                javaScriptEnabled = true
+                loadWithOverviewMode = true
+                useWideViewPort = false
+                setSupportZoom(false)
             }
+
+            // Inject CSS to match thermal printer paper width
+            val widthPx = if (paperWidthMm == 80) "302px" else "220px"
+            val styledHtml = """
+                <html><head>
+                <meta charset="UTF-8">
+                <style>
+                    @page { margin: 1mm; size: ${paperWidthMm}mm auto; }
+                    body { width: ${widthPx}; margin: 0; padding: 0; font-family: sans-serif; font-size: 9px; color: #000; }
+                    * { box-sizing: border-box; }
+                    img { max-width: 100%; }
+                    table { width: 100%; border-collapse: collapse; }
+                </style>
+                </head><body>
+                $html
+                </body></html>
+            """.trimIndent()
+
+            webView.webViewClient = object : WebViewClient() {
+                override fun onPageFinished(view: WebView, url: String) {
+                    createPrintJob(context, view, jobName, paperWidthMm)
+                }
+            }
+            webView.loadDataWithBaseURL(null, styledHtml, "text/html", "UTF-8", null)
         }
-        webView.loadDataWithBaseURL(null, styledHtml, "text/html", "UTF-8", null)
     }
 
     private fun createPrintJob(context: Context, webView: WebView, jobName: String, paperWidthMm: Int): PrintJob? {

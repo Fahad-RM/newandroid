@@ -25,8 +25,8 @@ class OrdersViewModel : ViewModel() {
         val repo = OdooRepository(AppPreferences(context))
         _state.update { it.copy(isLoading = true, error = null) }
         repo.getSaleOrders().fold(
-            onSuccess = { _state.update { s -> s.copy(orders = it, isLoading = false) } },
-            onFailure = { _state.update { s -> s.copy(isLoading = false, error = it.message) } }
+            onSuccess = { list -> _state.update { it.copy(orders = list, isLoading = false) } },
+            onFailure = { e -> _state.update { it.copy(isLoading = false, error = e.message) } }
         )
     }
 
@@ -62,11 +62,22 @@ class OrderDetailViewModel : ViewModel() {
 
     fun load(context: Context, orderId: Int) = viewModelScope.launch {
         val repo = OdooRepository(AppPreferences(context))
-        _state.update { it.copy(isLoading = true) }
-        repo.getSaleOrders().fold(
-            onSuccess = { list -> _state.update { s -> s.copy(order = list.firstOrNull { it.id == orderId }) } },
-            onFailure = { e -> _state.update { s -> s.copy(isLoading = false, error = e.message) } }
-        )
+        _state.update { it.copy(isLoading = true, error = null) }
+        
+        repo.getSaleOrders().onSuccess { list ->
+            val order = list.firstOrNull { it.id == orderId }
+            if (order != null) {
+                repo.getOrderLines(orderId).onSuccess { lines ->
+                    _state.update { it.copy(order = order, lines = lines, isLoading = false) }
+                }.onFailure { e ->
+                    _state.update { it.copy(order = order, lines = emptyList(), isLoading = false, error = "Lines: ${e.message}") }
+                }
+            } else {
+                _state.update { it.copy(isLoading = false, error = "Order #$orderId not found.") }
+            }
+        }.onFailure { e ->
+            _state.update { it.copy(isLoading = false, error = e.message) }
+        }
     }
 
     fun submitApproval(context: Context, orderId: Int) = viewModelScope.launch {
@@ -106,10 +117,10 @@ class InvoicesViewModel : ViewModel() {
 
     fun load(context: Context, moveType: String = "out_invoice") = viewModelScope.launch {
         val repo = OdooRepository(AppPreferences(context))
-        _state.update { it.copy(isLoading = true) }
+        _state.update { it.copy(isLoading = true, error = null) }
         repo.getInvoices(moveType).fold(
-            onSuccess = { _state.update { s -> s.copy(invoices = it, isLoading = false) } },
-            onFailure = { _state.update { s -> s.copy(isLoading = false, error = it.message) } }
+            onSuccess = { list -> _state.update { it.copy(invoices = list, isLoading = false) } },
+            onFailure = { e -> _state.update { it.copy(isLoading = false, error = e.message) } }
         )
     }
 }
