@@ -202,10 +202,12 @@ fun NewOrderScreen(onBack: () -> Unit, onOrderCreated: (Int) -> Unit) {
                                     colors = FilterChipDefaults.filterChipColors(selectedContainerColor = GoldPrimary.copy(0.2f), selectedLabelColor = GoldPrimary)
                                 )
                             }
-                            items(uniqueBrands) { (id, name) ->
+                            items(uniqueBrands) { brand ->
+                                val id = brand.first
+                                val name = brand.second
                                 FilterChip(
                                     selected = selectedBrandId == id,
-                                    onClick = { selectedBrandId = id },
+                                    onClick = { selectedBrandId = if (selectedBrandId == id) null else id },
                                     label = { Text(name) },
                                     colors = FilterChipDefaults.filterChipColors(selectedContainerColor = GoldPrimary.copy(0.2f), selectedLabelColor = GoldPrimary)
                                 )
@@ -446,7 +448,8 @@ private fun CartItemRow(item: CartItem, onQtyChange: (Double) -> Unit, onRemove:
     }
 }
 
-private fun base64ToBitmap(base64Str: String): ImageBitmap? {
+private fun base64ToBitmap(base64Str: String?): ImageBitmap? {
+    if (base64Str.isNullOrBlank()) return null
     return try {
         // Strip out the data URL prefix if present
         val cleanStr = if (base64Str.contains(",")) base64Str.substringAfter(",") else base64Str

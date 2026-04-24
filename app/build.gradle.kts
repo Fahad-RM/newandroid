@@ -8,6 +8,7 @@ plugins {
 android {
     namespace = "com.tts.fieldsales"
     compileSdk = 35
+    buildToolsVersion = "34.0.0"
 
     defaultConfig {
         applicationId = "com.tts.fieldsales"

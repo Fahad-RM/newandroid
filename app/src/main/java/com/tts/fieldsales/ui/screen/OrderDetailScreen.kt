@@ -167,8 +167,7 @@ private fun OrderStatusBanner(order: SaleOrder, viewModel: OrderDetailViewModel,
                     }
                 }
                 "sale" -> {
-                    val invoiceId = order.invoiceIds?.firstOrNull()
-                    if (invoiceId != null) {
+                    order.invoiceIds?.firstOrNull()?.let { invoiceId ->
                         GoldButton("View Invoice", onClick = { onInvoiceDetail?.invoke(invoiceId) }, icon = Icons.Default.Receipt, modifier = Modifier.fillMaxWidth())
                     }
                 }
