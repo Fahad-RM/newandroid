@@ -123,7 +123,9 @@ data class Product(
     @SerializedName("qty_available") val qtyAvailable: Double?,
     @SerializedName("taxes_id") val taxIds: List<Int>?,
     val barcode: String?,
-    val description: String?
+    val description: String?,
+    @SerializedName("brand_id") val brandId: JsonElement?,
+    @SerializedName("product_tmpl_id") val productTmplId: JsonElement?
 )
 
 data class UomUnit(

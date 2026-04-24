@@ -309,7 +309,7 @@ class OdooRepository(private val prefs: AppPreferences) {
         val url = prefs.getOdooUrl().trimEnd('/') + "/web/dataset/call_kw/product.product/search_read"
         val body = buildRpc("search_read", "product.product", kwargs = mapOf(
             "domain" to domain,
-            "fields" to listOf("name","list_price","uom_id","uom_po_id","default_code","image_128","qty_available","taxes_id","barcode","categ_id"),
+            "fields" to listOf("name","list_price","uom_id","uom_po_id","default_code","image_128","qty_available","taxes_id","barcode","categ_id","brand_id","product_tmpl_id"),
             "order" to "name asc",
             "limit" to 500
         ))
