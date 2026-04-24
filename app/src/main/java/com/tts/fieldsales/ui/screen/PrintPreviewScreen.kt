@@ -50,6 +50,9 @@ fun PrintPreviewScreen(
     var errorMsg by remember { mutableStateOf("") }
     var pageLoadProgress by remember { mutableStateOf(0) }
     var zoomLevel by remember { mutableStateOf(100) }
+    var paperWidthMm by remember { mutableStateOf(58) }
+
+    LaunchedEffect(Unit) { paperWidthMm = prefs.getPaperWidth() }
 
     // WebView instance kept stable
     val webView = remember {
@@ -193,7 +196,7 @@ fun PrintPreviewScreen(
                         Modifier.border(1.dp, GoldDim.copy(0.4f), RoundedCornerShape(10.dp)).padding(horizontal = 12.dp, vertical = 10.dp)
                     ) {
                         Text(
-                            if (prefs.getPaperWidth() == 80) "4\" (80mm)" else "3\" (58mm)",
+                            if (paperWidthMm == 80) "4\" (80mm)" else "3\" (58mm)",
                             color = GoldDim, style = MaterialTheme.typography.labelMedium
                         )
                     }
